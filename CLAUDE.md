@@ -101,6 +101,43 @@ autoframe/
 - Handle connection failures gracefully with Result types
 - Implement retry logic with tenacity for resilient connections
 
+## Security Guidelines
+
+### Critical Security Rules
+- **NEVER commit credentials**: API keys, tokens, passwords, or connection strings must never be committed to git
+- **Environment variables**: Use `.envrc` for local development (excluded from git via `.gitignore`)
+- **Dependency security**: Regularly check dependencies for vulnerabilities
+- **Input validation**: Sanitize all user inputs, especially database queries to prevent injection attacks
+
+### Database Security
+- **Connection strings**: Never hardcode database connection strings in code
+- **Query sanitization**: Use parameterized queries and validate input to prevent MongoDB injection
+- **Authentication**: Implement proper database authentication and connection pooling
+- **Error handling**: Use Result types to handle database errors without exposing sensitive information
+
+### Code Security Practices
+- **Type safety**: Full mypy coverage helps prevent security bugs
+- **Logging safety**: Ensure credentials are never logged (logerr integration helps with this)
+- **Dependency pinning**: Pin dependency versions to prevent supply chain attacks
+- **Pre-commit hooks**: Use automated security scanning before commits
+
+### Security Tools (Optional but Recommended)
+Add these to your development environment:
+```bash
+# Security scanning tools
+pixi add bandit safety --feature dev
+
+# Run security checks
+pixi run security-scan    # Static analysis with bandit
+pixi run dependency-check # Check for vulnerable dependencies
+```
+
+### Data Handling Security
+- **Data validation**: Validate all incoming data using Result types
+- **Sanitization**: Clean data before processing to prevent code injection
+- **Privacy**: Be mindful of PII and sensitive data in dataframes and logs
+- **Quality reports**: Ensure quality reports don't expose sensitive information
+
 ## Environment Setup
 
 This project uses AWS Bedrock for Claude Code integration. Ensure direnv is installed and run `direnv allow` to load the necessary environment variables from `.envrc`.

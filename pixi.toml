@@ -7,8 +7,7 @@ platforms = ["osx-arm64", "linux-64"]
 
 [dependencies]
 python = ">=3.12,<3.13"
-# Core dependencies
-logerr = ">=0.1.0,<0.2"
+# Core dependencies  
 loguru = ">=0.7.3,<0.8"
 confection = ">=0.1.5,<0.2"
 tenacity = ">=9.1.2,<10"
@@ -44,6 +43,9 @@ mkdocstrings-python = "*"
 default = ["dev", "docs"]
 dev = ["dev"]
 docs = ["docs"]
+
+[pypi-dependencies]
+logerr = { git = "https://github.com/jesserobertson/logerr.git" }
 
 [tasks]
 # Testing

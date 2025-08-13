@@ -9,13 +9,14 @@ __author__ = "Jesse Robertson"
 __email__ = "jess.robertson@niwa.co.nz"
 
 # Re-export key components for convenient access
-from autoframe.frames import create_dataframe
-from autoframe.quality import QualityReport
-from autoframe.sources import DataSource
+from autoframe.frames.core import create_dataframe
+from autoframe.sources.mongodb import MongoDBAdapter
+from autoframe.config import get_config, AutoFrameConfig
 
 __all__ = [
     "create_dataframe",
-    "QualityReport", 
-    "DataSource",
+    "MongoDBAdapter",
+    "get_config", 
+    "AutoFrameConfig",
     "__version__",
 ]
