@@ -1,0 +1,164 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoframe"
+version = "0.1.0"
+description = "Automated dataframe creation with integrated data quality reporting"
+authors = [{name = "Jesse Robertson", email = "jess.robertson@niwa.co.nz"}]
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+keywords = ["dataframes", "data-quality", "mongodb", "pandas", "polars", "functional"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "logerr>=0.1.0,<0.2",
+    "loguru>=0.7.3,<0.8",
+    "confection>=0.1.5,<0.2",
+    "tenacity>=9.1.2,<10",
+    "pandas>=2.0.0,<3",
+    "pymongo>=4.0.0,<5",
+]
+
+[project.optional-dependencies]
+polars = ["polars>=0.20.0,<1"]
+viz = ["matplotlib>=3.7.0,<4", "seaborn>=0.12.0,<1"]
+dev = [
+    "pytest",
+    "pytest-cov>=6.2.1,<7",
+    "hypothesis",
+    "pytest-asyncio",
+    "mypy",
+    "ruff",
+    "pre-commit>=4.2.0,<5",
+    "python-build>=1.2.2.post1,<2",
+    "twine>=6.1.0,<7",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings",
+    "mkdocstrings-python",
+]
+all = ["autoframe[polars,viz,dev,docs]"]
+
+[project.urls]
+Homepage = "https://github.com/jesserobertson/autoframe"
+Documentation = "https://jesserobertson.github.io/autoframe/"
+Repository = "https://github.com/jesserobertson/autoframe"
+Issues = "https://github.com/jesserobertson/autoframe/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["autoframe*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings  
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG001", # unused-function-args
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "TID",    # flake8-tidy-imports
+    "Q",      # flake8-quotes
+    "FLY",    # flynt
+    "PERF",   # perflint
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long, handled by black
+    "B008",   # do not perform function calls in argument defaults
+    "C901",   # complexity
+    "W191",   # indentation contains tabs
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["autoframe"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pymongo.*",
+    "polars.*",
+    "matplotlib.*",
+    "seaborn.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["autoframe"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
