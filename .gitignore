@@ -163,6 +163,7 @@ cython_debug/
 pixi.lock
 
 # direnv
+.envrc
 .envrc.local
 
 # macOS
