@@ -116,9 +116,9 @@ def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameT
         
         Functional composition:
         
-        >>> from autoframe.utils.functional import pipe, transform_documents
+        >>> from autoframe.utils.functional import pipe, transform
         >>> process = pipe(
-        ...     transform_documents(lambda d: {**d, "processed": True}),
+        ...     transform(lambda d: {**d, "processed": True}),
         ...     lambda docs: to_dataframe(docs).map(apply_schema({"age": "int"})).unwrap()
         ... )
     """
@@ -129,7 +129,7 @@ def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameT
     return apply_to_df
 
 
-def transform_documents(
+def transform(
     transform_fn: Callable[[Dict[str, Any]], Dict[str, Any]]
 ) -> Callable[[DocumentList], DocumentList]:
     """Create a document transformation function.
@@ -142,16 +142,16 @@ def transform_documents(
         
     Examples:
         >>> add_timestamp = lambda doc: {**doc, "processed_at": "2024-01-01"}
-        >>> transform = transform_documents(add_timestamp)
+        >>> transform_fn = transform(add_timestamp)
         >>> docs = [{"name": "Alice"}, {"name": "Bob"}] 
-        >>> transformed_docs = transform(docs)
+        >>> transformed_docs = transform_fn(docs)
         >>> transformed_docs[0]["processed_at"]
         '2024-01-01'
     """
     return lambda docs: [transform_fn(doc) for doc in docs]
 
 
-def filter_documents(
+def filter(
     predicate: Callable[[Dict[str, Any]], bool]
 ) -> Callable[[DocumentList], DocumentList]:
     """Create a document filtering function.
@@ -164,7 +164,7 @@ def filter_documents(
         
     Examples:
         >>> docs = [{"name": "Alice", "active": True}, {"name": "Bob", "active": False}]
-        >>> active_only = filter_documents(lambda doc: doc.get("active", True))
+        >>> active_only = filter(lambda doc: doc.get("active", True))
         >>> filtered_docs = active_only(docs)
         >>> len(filtered_docs)
         1
@@ -197,7 +197,7 @@ def validate_columns(required_cols: List[str]) -> Callable[[DataFrameResult], Da
     return validate_df
 
 
-def limit_documents(count: int) -> Callable[[DocumentList], DocumentList]:
+def limit(count: int) -> Callable[[DocumentList], DocumentList]:
     """Create a document limiting function.
     
     Args:
@@ -207,7 +207,7 @@ def limit_documents(count: int) -> Callable[[DocumentList], DocumentList]:
         Function that limits document list
         
     Examples:
-        >>> limit_100 = limit_documents(100)
+        >>> limit_100 = limit(100)
         >>> docs = [{"id": i} for i in range(200)]
         >>> limited_docs = limit_100(docs)
         >>> len(limited_docs)
@@ -237,10 +237,10 @@ def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
         ...     {"name": "Charlie", "age": 25, "active": False}
         ... ]
         >>> process = pipe(
-        ...     filter_documents(lambda d: d["active"]),
-        ...     filter_documents(lambda d: d["age"] >= 18),
-        ...     transform_documents(lambda d: {**d, "processed": True}),
-        ...     limit_documents(10)
+        ...     filter(lambda d: d["active"]),
+        ...     filter(lambda d: d["age"] >= 18),
+        ...     transform(lambda d: {**d, "processed": True}),
+        ...     limit(10)
         ... )
         >>> result_docs = process(docs)
         >>> len(result_docs)
@@ -253,8 +253,8 @@ def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
         With dataframe conversion:
         
         >>> full_pipeline = pipe(
-        ...     filter_documents(lambda d: d["active"]),
-        ...     transform_documents(lambda d: {**d, "category": "user"})
+        ...     filter(lambda d: d["active"]),
+        ...     transform(lambda d: {**d, "category": "user"})
         ... )
         >>> processed_docs = full_pipeline(docs)
         >>> df_result = to_dataframe(processed_docs)

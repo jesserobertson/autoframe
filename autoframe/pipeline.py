@@ -9,102 +9,18 @@ from functools import partial
 
 from logerr import Result
 from autoframe.types import DataFrameResult, DocumentList, DataSourceResult
-from autoframe.sources.simple import fetch_documents, fetch_documents_with_retry, create_fetcher
+from autoframe.sources.simple import fetch, fetch_with_retry, create_fetcher
 from autoframe.quality import log_result_failure, log_conversion_operation
 from autoframe.utils.functional import (
     to_dataframe,
     apply_schema, 
-    transform_documents,
-    filter_documents,
-    limit_documents,
+    transform,
+    filter,
+    limit,
     validate_columns,
     pipe
 )
 
-
-def mongodb_to_dataframe(
-    connection_string: str,
-    database: str,
-    collection: str,
-    query: Optional[Dict[str, Any]] = None,
-    limit: Optional[int] = None,
-    schema: Optional[Dict[str, str]] = None,
-    backend: str = "pandas"
-) -> DataFrameResult:
-    """Simple MongoDB to DataFrame pipeline - one function does it all.
-    
-    This is the simplest way to get data from MongoDB into a DataFrame with
-    optional filtering, limiting, and type conversion.
-    
-    Args:
-        connection_string: MongoDB connection string (e.g., "mongodb://localhost:27017")
-        database: Database name
-        collection: Collection name
-        query: Optional MongoDB query filter (e.g., {"active": True})
-        limit: Optional result limit (e.g., 1000)
-        schema: Optional schema for type conversion (e.g., {"age": "int"})
-        backend: "pandas" or "polars"
-        
-    Returns:
-        Result[DataFrame, Error]: Success contains DataFrame, failure contains error message
-        
-    Examples:
-        Basic usage:
-        
-        >>> # Note: These examples assume a running MongoDB instance
-        >>> # df_result = mongodb_to_dataframe(
-        >>> #     "mongodb://localhost:27017", 
-        >>> #     "ecommerce", 
-        >>> #     "orders"
-        >>> # )
-        >>> # df = df_result.unwrap()
-        
-        With filtering and schema:
-        
-        >>> # df_result = mongodb_to_dataframe(
-        >>> #     "mongodb://localhost:27017",
-        >>> #     "ecommerce", 
-        >>> #     "orders",
-        >>> #     query={"status": "completed", "total": {"$gt": 100}},
-        >>> #     limit=500,
-        >>> #     schema={"total": "float", "created_at": "datetime"}
-        >>> # )
-        >>> # if df_result.is_ok():
-        >>> #     df = df_result.unwrap()
-        >>> #     print(f"Retrieved {len(df)} orders")
-        
-        Error handling:
-        
-        >>> # result = mongodb_to_dataframe("invalid://connection", "db", "coll")
-        >>> # if result.is_err():
-        >>> #     print(f"Connection failed: {result.unwrap_err()}")
-    """
-    # Fetch documents with quality logging
-    result = fetch_documents(connection_string, database, collection, query, limit)
-    logged_result = log_result_failure(result, "mongodb_fetch", {
-        "database": database,
-        "collection": collection, 
-        "query": query,
-        "limit": limit
-    })
-    
-    # Convert to dataframe with logging
-    df_result = logged_result.then(partial(to_dataframe, backend=backend))
-    df_result = log_conversion_operation(
-        df_result, 
-        backend, 
-        len(logged_result.unwrap_or([]))
-    )
-    
-    # Apply schema if provided
-    if schema:
-        df_result = df_result.map(apply_schema(schema))
-        df_result = log_result_failure(df_result, "schema_application", {
-            "schema": schema,
-            "backend": backend
-        })
-    
-    return df_result
 
 
 def create_pipeline(
@@ -119,7 +35,7 @@ def create_pipeline(
         DataPipeline object for method chaining
         
     Examples:
-        >>> fetch_users = lambda: fetch_documents("mongodb://localhost", "db", "users")
+        >>> fetch_users = lambda: fetch("mongodb://localhost", "db", "users")
         >>> result = (
         ...     create_pipeline(fetch_users) 
         ...     .filter(lambda doc: doc["active"])
@@ -148,17 +64,17 @@ class DataPipeline:
     
     def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> "DataPipeline":
         """Add document filtering to pipeline."""
-        self.transforms.append(filter_documents(predicate))
+        self.transforms.append(filter(predicate))
         return self
     
     def transform(self, transform_fn: Callable[[Dict[str, Any]], Dict[str, Any]]) -> "DataPipeline":
         """Add document transformation to pipeline."""
-        self.transforms.append(transform_documents(transform_fn))
+        self.transforms.append(transform(transform_fn))
         return self
     
     def limit(self, count: int) -> "DataPipeline":
         """Add document limiting to pipeline."""
-        self.transforms.append(limit_documents(count))
+        self.transforms.append(limit(count))
         return self
     
     def to_dataframe(self, backend: str = "pandas") -> "DataPipeline":
@@ -261,7 +177,7 @@ def fetch_and_process(
         ...     limit=1000
         ... )
     """
-    fetch_fn = lambda: fetch_documents(connection_string, database, collection, query, limit)
+    fetch_fn = lambda: fetch(connection_string, database, collection, query, limit)
     
     pipeline = create_pipeline(fetch_fn)
     
@@ -291,4 +207,5 @@ def quick_dataframe(
     Examples:
         >>> df = quick_dataframe("mongodb://localhost", "mydb", "users").unwrap()
     """
-    return mongodb_to_dataframe(connection_string, database, collection)
+    from autoframe.mongodb import to_dataframe
+    return to_dataframe(connection_string, database, collection)

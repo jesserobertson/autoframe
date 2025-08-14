@@ -73,16 +73,21 @@ autoframe/
 **Functional API:**
 ```python
 import autoframe as af
+import autoframe.mongodb as mongodb
 
-# Simple composition
-result = af.to_dataframe(docs).map(af.apply_schema({"age": "int"}))
+# MongoDB to DataFrame - structured by data source
+result = mongodb.to_dataframe(
+    "mongodb://localhost:27017", "mydb", "users",
+    query={"active": True}, 
+    schema={"age": "int"}
+)
 
 # Function composition with pipe
 process = af.pipe(
-    filter_documents(lambda d: d["active"]),  
-    transform_documents(lambda d: {**d, "processed": True})
+    filter(lambda d: d["active"]),  
+    transform(lambda d: {**d, "processed": True})
 )
-result = af.fetch_documents(conn, db, coll).map(process).then(af.to_dataframe)
+result = af.fetch(conn, db, coll).map(process).then(af.to_dataframe)
 
 # Fluent pipeline interface
 result = (

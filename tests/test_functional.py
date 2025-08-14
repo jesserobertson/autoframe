@@ -8,9 +8,9 @@ from autoframe import (
     pipe
 )
 from autoframe.utils.functional import (
-    filter_documents,
-    transform_documents,
-    limit_documents,
+    filter,
+    transform,
+    limit,
     validate_columns
 )
 
@@ -54,17 +54,17 @@ def test_document_transforms():
     ]
     
     # Test filtering
-    adults_only = filter_documents(lambda doc: doc["age"] >= 18)
+    adults_only = filter(lambda doc: doc["age"] >= 18)
     adult_docs = adults_only(documents)
     assert len(adult_docs) == 2
     
     # Test transformation
-    add_adult_flag = transform_documents(lambda doc: {**doc, "adult": doc["age"] >= 18})
+    add_adult_flag = transform(lambda doc: {**doc, "adult": doc["age"] >= 18})
     transformed_docs = add_adult_flag(documents)
     assert all("adult" in doc for doc in transformed_docs)
     
     # Test limiting
-    limit_two = limit_documents(2)
+    limit_two = limit(2)
     limited_docs = limit_two(documents)
     assert len(limited_docs) == 2
 
@@ -79,10 +79,10 @@ def test_pipe_composition():
     ]
     
     process = pipe(
-        filter_documents(lambda doc: doc["active"]),
-        filter_documents(lambda doc: doc["age"] >= 18),
-        transform_documents(lambda doc: {**doc, "processed": True}),
-        limit_documents(2)
+        filter(lambda doc: doc["active"]),
+        filter(lambda doc: doc["age"] >= 18),
+        transform(lambda doc: {**doc, "processed": True}),
+        limit(2)
     )
     
     result_docs = process(documents)

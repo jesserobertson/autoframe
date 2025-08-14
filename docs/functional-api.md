@@ -7,10 +7,10 @@ AutoFrame's functional API provides composable, pure functions that follow funct
 ### Document Fetching
 
 ```python
-from autoframe.sources.simple import fetch_documents, connect_mongodb
+from autoframe.sources.simple import fetch, connect_mongodb
 
 # Basic document fetching
-result = fetch_documents(
+result = fetch(
     connection_string="mongodb://localhost:27017",
     database="mydb", 
     collection="users",
@@ -40,16 +40,16 @@ The `pipe` function enables left-to-right function composition:
 ```python
 from autoframe.utils.functional import (
     pipe, 
-    filter_documents, 
-    transform_documents,
-    limit_documents
+    filter, 
+    transform,
+    limit
 )
 
 # Compose a processing pipeline
 process_data = pipe(
-    filter_documents(lambda doc: doc["active"]),
-    transform_documents(lambda doc: {**doc, "processed_at": "2024-01-01"}),
-    limit_documents(1000)
+    filter(lambda doc: doc["active"]),
+    transform(lambda doc: {**doc, "processed_at": "2024-01-01"}),
+    limit(1000)
 )
 
 # Apply to documents
@@ -61,11 +61,11 @@ processed_docs = process_data(raw_documents)
 Chain operations using Result methods:
 
 ```python
-from autoframe import fetch_documents
+from autoframe import fetch
 from autoframe.utils.functional import to_dataframe, apply_schema
 
 result = (
-    fetch_documents("mongodb://localhost:27017", "db", "collection")
+    fetch("mongodb://localhost:27017", "db", "collection")
     .then(lambda docs: to_dataframe(docs, backend="pandas"))
     .map(apply_schema({"age": "int", "salary": "float"}))
     .map(lambda df: df.head(100))
@@ -83,12 +83,12 @@ result.match(
 ### Filtering Documents
 
 ```python
-from autoframe.utils.functional import filter_documents
+from autoframe.utils.functional import filter
 
 # Create filter functions
-active_users = filter_documents(lambda doc: doc.get("active", False))
-adults = filter_documents(lambda doc: doc.get("age", 0) >= 18)
-recent = filter_documents(lambda doc: doc.get("created_at", "") > "2024-01-01")
+active_users = filter(lambda doc: doc.get("active", False))
+adults = filter(lambda doc: doc.get("age", 0) >= 18)
+recent = filter(lambda doc: doc.get("created_at", "") > "2024-01-01")
 
 # Compose filters
 adult_active_users = pipe(active_users, adults)
@@ -97,10 +97,10 @@ adult_active_users = pipe(active_users, adults)
 ### Transforming Documents
 
 ```python
-from autoframe.utils.functional import transform_documents
+from autoframe.utils.functional import transform
 
 # Add computed fields
-add_full_name = transform_documents(
+add_full_name = transform(
     lambda doc: {
         **doc,
         "full_name": f"{doc.get('first_name', '')} {doc.get('last_name', '')}"
@@ -108,7 +108,7 @@ add_full_name = transform_documents(
 )
 
 # Normalize data
-normalize_email = transform_documents(
+normalize_email = transform(
     lambda doc: {**doc, "email": doc.get("email", "").lower()}
 )
 
@@ -119,15 +119,15 @@ normalize_users = pipe(add_full_name, normalize_email)
 ### Limiting Results
 
 ```python
-from autoframe.utils.functional import limit_documents
+from autoframe.utils.functional import limit
 
 # Create limit functions
-top_100 = limit_documents(100)
-sample_10 = limit_documents(10)
+top_100 = limit(100)
+sample_10 = limit(10)
 
 # Use in pipelines
 get_sample = pipe(
-    filter_documents(lambda doc: doc["active"]),
+    filter(lambda doc: doc["active"]),
     sample_10
 )
 ```
@@ -241,7 +241,7 @@ def conditional_transform(condition_fn, transform_fn):
     """Apply transformation only if condition is met."""
     def transformer(documents):
         if condition_fn(documents):
-            return transform_documents(transform_fn)(documents)
+            return transform(transform_fn)(documents)
         return documents
     return transformer
 
@@ -267,11 +267,11 @@ result = branch_processing(
     documents,
     lambda docs: len(docs) > 10000,
     true_pipeline=pipe(
-        limit_documents(10000),
-        transform_documents(lambda d: {**d, "sampled": True})
+        limit(10000),
+        transform(lambda d: {**d, "sampled": True})
     ),
     false_pipeline=pipe(
-        transform_documents(lambda d: {**d, "full_dataset": True})
+        transform(lambda d: {**d, "full_dataset": True})
     )
 )
 ```
@@ -285,14 +285,14 @@ from functools import partial
 
 # Create specialized fetchers
 fetch_users = partial(
-    fetch_documents,
+    fetch,
     "mongodb://localhost:27017",
     "mydb", 
     "users"
 )
 
 fetch_orders = partial(
-    fetch_documents,
+    fetch,
     "mongodb://localhost:27017",
     "mydb",
     "orders"
@@ -300,7 +300,7 @@ fetch_orders = partial(
 
 # Create specialized transformers
 add_timestamp = partial(
-    transform_documents,
+    transform,
     lambda doc: {**doc, "processed_at": datetime.now().isoformat()}
 )
 
@@ -318,11 +318,11 @@ def create_processor(filters, transforms, schema=None):
     
     # Add filters
     for filter_fn in filters:
-        pipeline_steps.append(filter_documents(filter_fn))
+        pipeline_steps.append(filter(filter_fn))
     
     # Add transforms
     for transform_fn in transforms:
-        pipeline_steps.append(transform_documents(transform_fn))
+        pipeline_steps.append(transform(transform_fn))
     
     # Create pipeline
     process_docs = pipe(*pipeline_steps)

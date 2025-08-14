@@ -42,10 +42,10 @@ pixi install
 #### Simple MongoDB to DataFrame
 
 ```python
-from autoframe import mongodb_to_dataframe
+import autoframe.mongodb as mongodb
 
-# One-function approach with automatic retry and quality logging
-result = mongodb_to_dataframe(
+# New structured approach - extensible to other data sources
+result = mongodb.to_dataframe(
     "mongodb://localhost:27017",
     "ecommerce",
     "orders",
@@ -66,11 +66,11 @@ else:
 #### Functional Pipeline Composition
 
 ```python
-from autoframe import create_pipeline, fetch_documents
-from autoframe.utils.functional import pipe, filter_documents, transform_documents
+from autoframe import create_pipeline, fetch
+from autoframe.utils.functional import pipe, filter, transform
 
 # Define data source
-fetch_users = lambda: fetch_documents(
+fetch_users = lambda: fetch(
     "mongodb://localhost:27017", 
     "app", 
     "users"
@@ -100,18 +100,18 @@ df = result.unwrap()
 #### Pure Functional Composition
 
 ```python
-from autoframe.utils.functional import pipe, filter_documents, transform_documents, to_dataframe
-from autoframe import fetch_documents
+from autoframe.utils.functional import pipe, filter, transform, to_dataframe
+from autoframe import fetch
 
 # Compose functions directly
 process_data = pipe(
-    filter_documents(lambda doc: doc["active"]),
-    transform_documents(lambda doc: {**doc, "processed": True}),
+    filter(lambda doc: doc["active"]),
+    transform(lambda doc: {**doc, "processed": True}),
     lambda docs: to_dataframe(docs).map(apply_schema({"age": "int"}))
 )
 
 # Execute pipeline
-docs_result = fetch_documents("mongodb://localhost:27017", "db", "users")
+docs_result = fetch("mongodb://localhost:27017", "db", "users")
 final_result = docs_result.then(process_data)
 ```
 
@@ -135,7 +135,7 @@ logged_docs = log_document_completeness(
 )
 
 # Result failure logging (automatic in pipelines)
-result = fetch_documents("mongodb://server:27017", "db", "collection")
+result = fetch("mongodb://server:27017", "db", "collection")
 logged_result = log_result_failure(result, "data_fetch", {"source": "mongodb"})
 ```
 
@@ -226,7 +226,7 @@ AutoFrame emphasizes:
 from autoframe import (
     mongodb_to_dataframe,    # One-function MongoDB → DataFrame
     create_pipeline,         # Fluent pipeline builder
-    fetch_documents,         # Simple document fetching
+    fetch,                   # Simple document fetching
     to_dataframe,           # Document → DataFrame conversion
     apply_schema,           # Schema application function
     pipe,                   # Function composition
@@ -252,9 +252,9 @@ from autoframe import (
 ```python
 # Document processing functions
 from autoframe.utils.functional import (
-    filter_documents,        # λ predicate → λ docs → filtered_docs
-    transform_documents,     # λ transform → λ docs → transformed_docs
-    limit_documents,         # λ count → λ docs → limited_docs
+    filter,                  # λ predicate → λ docs → filtered_docs
+    transform,               # λ transform → λ docs → transformed_docs
+    limit,                   # λ count → λ docs → limited_docs
     validate_columns,        # λ required → λ df_result → validated_result
 )
 
@@ -267,8 +267,8 @@ apply_user_schema = apply_schema({
 
 # Pipeline composition
 user_pipeline = pipe(
-    filter_documents(lambda doc: doc["active"]),
-    transform_documents(add_computed_fields),
+    filter(lambda doc: doc["active"]),
+    transform(add_computed_fields),
     lambda docs: to_dataframe(docs).map(apply_user_schema)
 )
 ```

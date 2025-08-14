@@ -10,8 +10,9 @@ __email__ = "jess.robertson@niwa.co.nz"
 
 # Re-export key components for convenient access
 # Functional, composable API
-from autoframe.pipeline import mongodb_to_dataframe, create_pipeline, fetch_and_process, quick_dataframe
-from autoframe.sources.simple import fetch_documents, fetch_documents_with_retry, create_fetcher
+from autoframe.pipeline import create_pipeline, fetch_and_process, quick_dataframe
+from autoframe import mongodb
+from autoframe.sources.simple import fetch, fetch_with_retry, create_fetcher
 from autoframe.utils.functional import to_dataframe, apply_schema, pipe
 from autoframe.utils.retry import with_database_retry, with_network_retry, retry_with_backoff
 from autoframe.quality import (
@@ -24,11 +25,11 @@ from autoframe.quality import (
 
 __all__ = [
     # Core functional API
-    "mongodb_to_dataframe",
+    "mongodb",
     "create_pipeline", 
     "fetch_and_process",
     "quick_dataframe",
-    "fetch_documents",
+    "fetch",
     "to_dataframe",
     "apply_schema", 
     "pipe",

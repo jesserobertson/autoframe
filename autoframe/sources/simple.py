@@ -35,7 +35,7 @@ def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataS
     return connect()
 
 
-def fetch_documents(
+def fetch(
     connection_string: str,
     database: str, 
     collection: str,
@@ -55,7 +55,7 @@ def fetch_documents(
         Result[List[Dict], DataSourceError]
         
     Examples:
-        >>> docs = fetch_documents(
+        >>> docs = fetch(
         ...     "mongodb://localhost:27017", 
         ...     "mydb", 
         ...     "users",
@@ -69,7 +69,7 @@ def fetch_documents(
     )
 
 
-def count_documents(
+def count(
     connection_string: str,
     database: str,
     collection: str, 
@@ -112,10 +112,10 @@ def create_fetcher(
         >>> active_users = fetch_users({"active": True}, 100)
         >>> all_users = fetch_users(None, None)
     """
-    return partial(fetch_documents, connection_string, database, collection)
+    return partial(fetch, connection_string, database, collection)
 
 
-def fetch_documents_with_retry(
+def fetch_with_retry(
     connection_string: str,
     database: str,
     collection: str,
@@ -124,10 +124,10 @@ def fetch_documents_with_retry(
 ) -> DataSourceResult[DocumentList]:
     """Fetch documents with automatic retry logic.
     
-    Same as fetch_documents but with built-in retry for transient failures.
-    Note: fetch_documents now has retry built-in, so this is just an alias.
+    Same as fetch but with built-in retry for transient failures.
+    Note: fetch now has retry built-in, so this is just an alias.
     """
-    return fetch_documents(connection_string, database, collection, query, limit)
+    return fetch(connection_string, database, collection, query, limit)
 
 
 def fetch_in_batches(
