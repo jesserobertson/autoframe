@@ -145,8 +145,9 @@ addopts = [
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
+    "integration: marks tests as integration tests", 
     "unit: marks tests as unit tests",
+    "hypothesis: marks tests as hypothesis property-based tests",
 ]
 
 [tool.coverage.run]

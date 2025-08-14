@@ -53,7 +53,9 @@ logerr = { git = "https://github.com/jesserobertson/logerr.git" }
 test = "pytest tests/unit/ --cov=autoframe --cov-report=term --cov-report=xml --cov-report=html"
 test-integration = "pytest tests/integration/ -v --cov=autoframe --cov-append --cov-report=xml"
 test-all = "pytest tests/ --doctest-modules autoframe --cov=autoframe --cov-report=term --cov-report=xml --cov-report=html"
-test-fast = "pytest tests/unit/ -x --ff"
+test-fast = "pytest tests/unit/ -x --ff -m 'not slow'"
+test-slow = "pytest tests/unit/ -m 'slow' -v"
+test-hypothesis = "pytest tests/unit/ -m 'hypothesis' -v"
 test-coverage = "coverage report --show-missing"
 test-coverage-html = "coverage html && echo 'Coverage report generated in htmlcov/index.html'"
 test-with-integration = { depends-on = ["test", "test-integration"], cmd = "echo 'Combined unit and integration tests completed with coverage'" }
