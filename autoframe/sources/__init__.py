@@ -1,6 +1,7 @@
-"""Data source adapters for various backends."""
+"""Data sources module - simplified.
 
-from autoframe.sources.base import DataSourceAdapter
-from autoframe.sources.mongodb import MongoDBAdapter
+All MongoDB functionality has been consolidated into autoframe.mongodb.
+This module is kept for future data source extensions.
+"""
 
-__all__ = ["DataSourceAdapter", "MongoDBAdapter"]
+__all__ = []

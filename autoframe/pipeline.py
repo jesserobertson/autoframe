@@ -9,7 +9,7 @@ from functools import partial
 
 from logerr import Result
 from autoframe.types import DataFrameResult, DocumentList, DataSourceResult
-from autoframe.sources.simple import fetch, fetch_with_retry, create_fetcher
+from autoframe.mongodb import fetch, create_fetcher
 from autoframe.quality import log_result_failure, log_conversion_operation
 from autoframe.utils.functional import (
     to_dataframe,

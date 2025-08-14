@@ -21,7 +21,7 @@ from autoframe.types import (
     QualityResult,
     FieldName
 )
-from autoframe.sources.base import DataSourceAdapter, QueryBuilder
+# Note: DataSourceAdapter and QueryBuilder removed - using direct MongoDB functions
 from logerr import Result, Option, Ok, Err
 from logerr.utils import execute
 

@@ -7,7 +7,7 @@ import pytest
 import os
 from typing import Dict, Any, List
 import pymongo
-from autoframe.sources.simple import fetch, connect_mongodb, count, fetch_in_batches
+from autoframe.mongodb import fetch, connect_mongodb, count, fetch_in_batches
 import autoframe.mongodb as mongodb
 from autoframe.utils.functional import to_dataframe
 
