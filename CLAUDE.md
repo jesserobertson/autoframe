@@ -54,49 +54,67 @@ pixi run docs-build
 - **Low complexity**: Avoid enterprise patterns - keep it simple and focused
 - **Type safety**: Full mypy type checking with Result<T, E> and Option<T> types from logerr
 - **Error handling**: Use Result types instead of exceptions for expected failure cases
-- **Logging**: Automatic logging of errors through logerr integration
+- **Transparent logging**: Automatic logging of errors through logerr integration without manual logging calls
+- **Explicit parameters**: No complex configuration systems - use explicit function parameters
 
-### Project Structure
+### API Simplification Decisions
+**Keep these patterns:**
+- Pipeline-style functional composition with `create_pipeline()`
+- Direct MongoDB access via `mongodb.to_dataframe()`
+- Result/Option types for transparent error handling and logging
+- Pattern matching with `match` statements instead of `.is_ok()` checks
+
+**Remove these patterns:**
+- Abstract base classes and adapter patterns (over-engineered for single data source)
+- Complex configuration system (use explicit parameters instead)
+- Manual quality logging functions (logging should be transparent)
+- Redundant high-level wrappers (`fetch_and_process`, `quick_dataframe`)
+
+### Project Structure (Simplified)
 ```
 autoframe/
-├── autoframe/           # Main package
-│   ├── sources/         # Data source functions (simple.py for MongoDB)
-│   ├── utils/           # Functional utilities (functional.py - composable functions)
+├── autoframe/           # Main package  
+│   ├── mongodb.py       # All MongoDB functionality (consolidated)
+│   ├── utils/           # Functional utilities (functional.py, retry.py)
 │   ├── pipeline.py      # Fluent pipeline interface
-│   ├── quality/         # Data quality reporting and validation
-│   └── config.py        # Configuration management
+│   ├── quality.py       # Minimal automatic logging only
+│   └── types.py         # Type definitions
 ├── tests/               # Test suite (test_functional.py for functional API)
 └── docs/                # Documentation
 ```
 
 ### API Usage
-**Functional API:**
+**Simplified Functional API:**
 ```python
 import autoframe as af
 import autoframe.mongodb as mongodb
 
-# MongoDB to DataFrame - structured by data source
+# Direct MongoDB to DataFrame - simple and explicit
 result = mongodb.to_dataframe(
     "mongodb://localhost:27017", "mydb", "users",
     query={"active": True}, 
-    schema={"age": "int"}
+    schema={"age": "int"},
+    backend="pandas"  # explicit parameter, no config needed
 )
 
-# Function composition with pipe
-process = af.pipe(
-    filter(lambda d: d["active"]),  
-    transform(lambda d: {**d, "processed": True})
-)
-result = af.fetch(conn, db, coll).map(process).then(af.to_dataframe)
+# Handle results with pattern matching (preferred over .is_ok())
+match result:
+    case Ok(df):
+        print(f"Success: {len(df)} rows")
+    case Err(error):
+        print(f"Error: {error}")
 
-# Fluent pipeline interface
+# Pipeline interface for complex transformations
 result = (
-    af.create_pipeline(fetch_fn)
+    af.create_pipeline(lambda: af.mongodb.fetch(conn, db, coll))
     .filter(lambda d: d["active"])
     .transform(lambda d: {**d, "processed": True})
-    .to_dataframe()
+    .to_dataframe(backend="pandas")
     .execute()
 )
+
+# Automatic error logging happens transparently via Result types
+# No manual logging calls needed - errors are logged automatically
 ```
 
 
@@ -124,11 +142,14 @@ result = (
 - Write comprehensive tests with pytest (focus on test_functional.py for new API)
 
 ### API Design Principles
-- **Simple over complex**: Choose the simplest approach that works
+- **Simple over complex**: Choose the simplest approach that works - avoid over-engineering
 - **Composable over monolithic**: Small functions that work together
 - **Functional over object-oriented**: Prefer function composition to class inheritance
+- **Explicit over implicit**: Use explicit parameters instead of complex configuration systems  
+- **Transparent over manual**: Error handling and logging should happen automatically via Result types
 - **Result types for errors**: Use Result<T, E> for operations that can fail
-- **Option types for nullable**: Use Option<T> for operations that may return empty results
+- **Pattern matching over conditionals**: Use `match` statements instead of `.is_ok()` checks
+- **Consolidation over redundancy**: Remove overlapping functions that do the same thing
 
 ### Testing Strategy
 - **Focus on functional API**: Write tests for the new functional interface first
@@ -138,10 +159,13 @@ result = (
 - **Avoid complex mocking**: Prefer simple test data over complex mocks
 
 ### Adding New Functionality
-- **Start with simple functions**: Don't immediately reach for classes
+- **Start with simple functions**: Don't immediately reach for classes or abstract base classes
 - **Make it composable**: Ensure new functions work well with `pipe()`, `.map()`, `.then()` and other Result methods
 - **Follow logerr patterns**: Look at logerr for inspiration on functional design
+- **Use explicit parameters**: Avoid adding to configuration systems - use function parameters
+- **Enable transparent logging**: Let Result types handle error logging automatically
 - **Test composability**: Verify that new functions compose well with existing ones
+- **Consolidate when possible**: Before adding new functions, check if existing ones can be extended
 
 ## Security Guidelines
 
