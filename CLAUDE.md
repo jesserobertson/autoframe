@@ -46,60 +46,97 @@ pixi run docs-serve
 pixi run docs-build
 ```
 
-## Architecture
+## Architecture & Philosophy
 
-### Core Principles
-- **Functional first**: Prefer functional API patterns with pipeline-style chaining
+### Core Principles (Following logerr Patterns)
+- **Functional composition over classes**: Prefer simple, composable functions over complex class hierarchies
+- **High composability**: Small functions that compose well using `pipe()`, `.map()`, `.and_then()`
+- **Low complexity**: Avoid enterprise patterns - keep it simple and focused
 - **Type safety**: Full mypy type checking with Result<T, E> and Option<T> types from logerr
 - **Error handling**: Use Result types instead of exceptions for expected failure cases
-- **Logging**: Automatic logging of errors and data quality issues through logerr integration
-- **Composability**: Small, composable functions that can be chained together
+- **Logging**: Automatic logging of errors through logerr integration
 
 ### Project Structure
 ```
 autoframe/
 ├── autoframe/           # Main package
-│   ├── sources/         # Data source adapters (mongodb, etc.)
-│   ├── frames/          # Dataframe creation and manipulation
+│   ├── sources/         # Data source functions (simple.py for MongoDB)
+│   ├── utils/           # Functional utilities (functional.py - composable functions)
+│   ├── pipeline.py      # Fluent pipeline interface
 │   ├── quality/         # Data quality reporting and validation
-│   └── utils/           # Utility functions and helpers
-├── tests/               # Test suite
+│   └── config.py        # Configuration management
+├── tests/               # Test suite (test_functional.py for functional API)
 └── docs/                # Documentation
 ```
 
+### API Usage
+**Functional API:**
+```python
+import autoframe as af
+
+# Simple composition
+result = af.to_dataframe(docs).map(af.apply_schema({"age": "int"}))
+
+# Function composition with pipe
+process = af.pipe(
+    filter_documents(lambda d: d["active"]),  
+    transform_documents(lambda d: {**d, "processed": True})
+)
+result = af.fetch_documents(conn, db, coll).map(process).then(af.to_dataframe)
+
+# Fluent pipeline interface
+result = (
+    af.create_pipeline(fetch_fn)
+    .filter(lambda d: d["active"])
+    .transform(lambda d: {**d, "processed": True})
+    .to_dataframe()
+    .execute()
+)
+```
+
+
 ### Key Dependencies
 - **logerr**: Functional Result/Option types and logging integration
-- **pandas**: Primary dataframe library
+- **pandas**: Primary dataframe library  
 - **polars**: Alternative high-performance dataframes (optional)
 - **pymongo**: MongoDB connectivity
 - **tenacity**: Retry logic for data source connections
-- **loguru**: Logging backend (via logerr)
 
 ## Development Practices
+
+### Code Style & Design Philosophy
+- **Prefer functions over classes**: Use simple functions that compose well
+- **Avoid complex abstractions**: Don't create enterprise patterns when simple functions suffice
+- **Embrace functional composition**: Use `pipe()`, `.map()`, `.then()` for chaining operations
+- **Keep functions small and focused**: Each function should do one thing well
+- **Use Result types consistently**: For operations that can fail, always return Result<T, E>
+- **Avoid imperative patterns**: Prefer functional alternatives to try/catch blocks
 
 ### Code Quality
 - Always run `pixi run check-all` before committing changes
 - Use pre-commit hooks for automated quality checks
 - Maintain 100% type coverage with mypy
-- Write comprehensive tests with pytest and hypothesis
+- Write comprehensive tests with pytest (focus on test_functional.py for new API)
 
-### API Design
-- Use Result<T, E> for operations that can fail (database connections, data validation)
-- Use Option<T> for operations that may return empty results
-- Prefer method chaining and functional composition
-- Avoid imperative try/catch patterns when functional alternatives exist
+### API Design Principles
+- **Simple over complex**: Choose the simplest approach that works
+- **Composable over monolithic**: Small functions that work together
+- **Functional over object-oriented**: Prefer function composition to class inheritance
+- **Result types for errors**: Use Result<T, E> for operations that can fail
+- **Option types for nullable**: Use Option<T> for operations that may return empty results
 
-### Testing
-- Unit tests for all core functionality
-- Property-based testing with hypothesis for data validation
-- Integration tests for database connectivity
-- Doctests in all public functions
+### Testing Strategy
+- **Focus on functional API**: Write tests for the new functional interface first
+- **Property-based testing**: Use hypothesis for data validation and edge cases
+- **Simple unit tests**: Test individual functions in isolation
+- **Integration tests**: Test composed pipelines end-to-end
+- **Avoid complex mocking**: Prefer simple test data over complex mocks
 
-### Data Source Integration
-- Start with MongoDB support, design for extensibility to other sources
-- Use adapter pattern for different data source types
-- Handle connection failures gracefully with Result types
-- Implement retry logic with tenacity for resilient connections
+### Adding New Functionality
+- **Start with simple functions**: Don't immediately reach for classes
+- **Make it composable**: Ensure new functions work well with `pipe()`, `.map()`, `.then()` and other Result methods
+- **Follow logerr patterns**: Look at logerr for inspiration on functional design
+- **Test composability**: Verify that new functions compose well with existing ones
 
 ## Security Guidelines
 

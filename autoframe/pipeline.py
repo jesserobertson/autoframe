@@ -57,7 +57,7 @@ def mongodb_to_dataframe(
     """
     result = fetch_documents(connection_string, database, collection, query, limit)
     
-    df_result = result.and_then(partial(to_dataframe, backend=backend))
+    df_result = result.then(partial(to_dataframe, backend=backend))
     
     if schema:
         df_result = df_result.map(apply_schema(schema))
@@ -149,7 +149,7 @@ class DataPipeline:
             docs_result = docs_result.map(combined_transform)
         
         # Convert to dataframe
-        df_result = docs_result.and_then(
+        df_result = docs_result.then(
             partial(to_dataframe, backend=self.target_backend)
         )
         

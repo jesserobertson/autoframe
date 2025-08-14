@@ -67,7 +67,7 @@ def fetch_documents(
     """
     return (
         connect_mongodb(connection_string)
-        .and_then(lambda client: _query_collection(client, database, collection, query, limit))
+        .then(lambda client: _query_collection(client, database, collection, query, limit))
     )
 
 
@@ -90,7 +90,7 @@ def count_documents(
     """
     return (
         connect_mongodb(connection_string)
-        .and_then(lambda client: _count_collection(client, database, collection, query))
+        .then(lambda client: _count_collection(client, database, collection, query))
     )
 
 

@@ -92,7 +92,7 @@ class DataFrameFactory:
         # Execute the query
         query_result = query_builder.execute()
         
-        return query_result.and_then(
+        return query_result.then(
             lambda documents: DataFrameFactory.from_documents(
                 documents, backend, schema, transform
             )
@@ -319,7 +319,7 @@ class DataFrameProcessor:
             
             return df
         
-        return df_result.and_then(
+        return df_result.then(
             lambda df: Result.Ok(validate(df))
         ).map_err(
             lambda e: e if isinstance(e, DataFrameCreationError) else DataFrameCreationError(str(e))

@@ -133,10 +133,10 @@ def validate_columns(required_cols: List[str]) -> Callable[[DataFrameResult], Da
         
     Examples:
         >>> validate = validate_columns(["name", "age"])
-        >>> result = to_dataframe(docs).and_then(validate)
+        >>> result = to_dataframe(docs).then(validate)
     """
     def validate_df(df_result: DataFrameResult) -> DataFrameResult:
-        return df_result.and_then(lambda df: _check_columns(df, required_cols))
+        return df_result.then(lambda df: _check_columns(df, required_cols))
     
     return validate_df
 
