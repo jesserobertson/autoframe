@@ -8,10 +8,10 @@ The `autoframe.utils.functional` module contains the core composable functions t
 
 ::: autoframe.utils.functional.pipe
 
-::: autoframe.utils.functional.filter_documents
+::: autoframe.utils.functional.filter
 
-::: autoframe.utils.functional.transform_documents
+::: autoframe.utils.functional.transform
 
-::: autoframe.utils.functional.limit_documents  
+::: autoframe.utils.functional.limit  
 
 ::: autoframe.utils.functional.validate_columns

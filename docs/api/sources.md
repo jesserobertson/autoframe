@@ -6,13 +6,13 @@ This section documents the data source interfaces and implementations.
 
 ::: autoframe.sources.simple.connect_mongodb
 
-::: autoframe.sources.simple.fetch_documents
+::: autoframe.sources.simple.fetch
 
-::: autoframe.sources.simple.count_documents
+::: autoframe.sources.simple.count
 
 ::: autoframe.sources.simple.create_fetcher
 
-::: autoframe.sources.simple.fetch_documents_with_retry
+::: autoframe.sources.simple.fetch_with_retry
 
 ::: autoframe.sources.simple.fetch_in_batches
 
