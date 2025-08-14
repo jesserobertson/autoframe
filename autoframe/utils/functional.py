@@ -4,7 +4,7 @@ This module provides simple, composable functions following logerr patterns
 for functional data processing pipelines.
 """
 
-from typing import Callable, Dict, Any, List, Optional, TypeVar
+from typing import Callable, TypeVar, TYPE_CHECKING, cast, Any
 import pandas as pd
 from functools import partial
 
@@ -14,8 +14,8 @@ try:
 except ImportError:
     POLARS_AVAILABLE = False
 
-from logerr import Result, Ok, Err
-from logerr.utils import execute
+from logerr import Result, Ok, Err  # type: ignore
+from logerr.utils import execute  # type: ignore
 from autoframe.types import (
     DataFrameResult, 
     DocumentList, 
@@ -93,7 +93,7 @@ def to_dataframe(
     )
 
 
-def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameType]:
+def apply_schema(schema: dict[str, str]) -> Callable[[DataFrameType], DataFrameType]:
     """Create a schema application function - composable transform.
     
     Args:
@@ -130,7 +130,7 @@ def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameT
 
 
 def transform(
-    transform_fn: Callable[[Dict[str, Any]], Dict[str, Any]]
+    transform_fn: Callable[[dict[str, Any]], dict[str, Any]]
 ) -> Callable[[DocumentList], DocumentList]:
     """Create a document transformation function.
     
@@ -152,7 +152,7 @@ def transform(
 
 
 def filter(
-    predicate: Callable[[Dict[str, Any]], bool]
+    predicate: Callable[[dict[str, Any]], bool]
 ) -> Callable[[DocumentList], DocumentList]:
     """Create a document filtering function.
     
@@ -174,7 +174,7 @@ def filter(
     return lambda docs: [doc for doc in docs if predicate(doc)]
 
 
-def validate_columns(required_cols: List[str]) -> Callable[[DataFrameResult], DataFrameResult]:
+def validate_columns(required_cols: list[str]) -> Callable[[DataFrameResult], DataFrameResult]:
     """Create a column validation function.
     
     Args:
@@ -270,7 +270,7 @@ def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
 
 
 # Private helper functions - Functional approach using duck typing
-def _apply_schema_unified(df: DataFrameType, schema: Dict[str, str]) -> DataFrameType:
+def _apply_schema_unified(df: DataFrameType, schema: dict[str, str]) -> DataFrameType:
     """Apply schema to any dataframe type - truly functional approach with duck typing.
     
     Ask for forgiveness, not permission! Try operations and handle failures gracefully.
@@ -298,54 +298,54 @@ def _apply_schema_unified(df: DataFrameType, schema: Dict[str, str]) -> DataFram
 def _convert_to_int(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to integer using Result types."""
     # Try polars first, fall back to pandas
-    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Int64)))
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Int64)))  # type: ignore
     
     return polars_result.unwrap_or_else(lambda _: execute(lambda: (
-        df.copy().assign(**{field: df[field].astype("int64", errors="ignore")})
+        df.copy().assign(**{field: df[field].astype("int64", errors="ignore")})  # type: ignore
     )).unwrap_or(df))
 
 
 def _convert_to_float(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to float using Result types.""" 
-    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Float64)))
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Float64)))  # type: ignore
     
     return polars_result.unwrap_or_else(lambda _: execute(lambda: (
-        df.copy().assign(**{field: df[field].astype("float64", errors="ignore")})
+        df.copy().assign(**{field: df[field].astype("float64", errors="ignore")})  # type: ignore
     )).unwrap_or(df))
 
 
 def _convert_to_string(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to string using Result types."""
-    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Utf8)))
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Utf8)))  # type: ignore
     
     return polars_result.unwrap_or_else(lambda _: execute(lambda: (
-        df.copy().assign(**{field: df[field].astype("object", errors="ignore")})
+        df.copy().assign(**{field: df[field].astype("object", errors="ignore")})  # type: ignore
     )).unwrap_or(df))
 
 
 def _convert_to_datetime(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to datetime using Result types."""
-    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Datetime)))
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Datetime)))  # type: ignore
     
     return polars_result.unwrap_or_else(lambda _: execute(lambda: (
-        df.copy().assign(**{field: pd.to_datetime(df[field], errors="coerce")})
+        df.copy().assign(**{field: pd.to_datetime(df[field], errors="coerce")})  # type: ignore
     )).unwrap_or(df))
 
 
 def _convert_to_bool(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to boolean using Result types."""
-    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Boolean)))
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Boolean)))  # type: ignore
     
     return polars_result.unwrap_or_else(lambda _: execute(lambda: (
-        df.copy().assign(**{field: df[field].astype("bool", errors="ignore")})
+        df.copy().assign(**{field: df[field].astype("bool", errors="ignore")})  # type: ignore
     )).unwrap_or(df))
 
 
-def _check_columns(df: DataFrameType, required_cols: List[str]) -> DataFrameResult:
+def _check_columns(df: DataFrameType, required_cols: list[str]) -> DataFrameResult:
     """Check if dataframe has required columns using Result types."""
-    def check_cols():
+    def check_cols() -> DataFrameType:
         # Both pandas and polars have .columns attribute - use duck typing!
-        current_cols = set(df.columns)
+        current_cols = set(df.columns)  # type: ignore
         missing = set(required_cols) - current_cols
         
         if missing:

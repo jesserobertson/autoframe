@@ -135,6 +135,55 @@ result = (
 - **Use Result types consistently**: For operations that can fail, always return Result<T, E>
 - **Avoid imperative patterns**: Prefer functional alternatives to try/catch blocks
 
+### Modern Python 3.12+ Typing Requirements
+**This project targets Python 3.12+ and MUST use modern typing syntax:**
+
+- **Use union syntax**: `A | B` instead of `Union[A, B]`
+- **Use built-in generics**: `list[str]`, `dict[str, Any]` instead of `List[str]`, `Dict[str, Any]`
+- **Use modern optional syntax**: `T | None` instead of `Optional[T]`
+- **Use new type statement**: `type MyType = int | str` instead of `MyType: TypeAlias = Union[int, str]`
+- **Minimal typing imports**: Only import what you actually need (avoid unused imports)
+- **Use match statements**: Prefer pattern matching over if/elif chains where appropriate
+
+**Examples of correct modern typing:**
+```python
+# ✅ Modern (Python 3.12+)
+type UserId = int | str
+type QueryDict = dict[str, Any]
+type DocumentList = list[dict[str, Any]]
+
+def process_data(
+    documents: DocumentList,
+    user_id: UserId | None = None,
+    options: dict[str, str] | None = None
+) -> DataFrameResult:
+    match result:
+        case Ok(data):
+            return process(data)
+        case Err(error):
+            return handle_error(error)
+```
+
+**Examples of deprecated syntax (DO NOT USE):**
+```python
+# ❌ Old style (Python < 3.12)
+from typing import Union, List, Dict, Optional, TypeAlias
+
+UserIdType: TypeAlias = Union[int, str]
+QueryDict = Dict[str, Any]
+DocumentList = List[Dict[str, Any]]
+
+def process_data(
+    documents: DocumentList,
+    user_id: Optional[UserIdType] = None,
+    options: Optional[Dict[str, str]] = None
+) -> DataFrameResult:
+    if result.is_ok():
+        return process(result.unwrap())
+    else:
+        return handle_error(result.unwrap_err())
+```
+
 ### Code Quality
 - Always run `pixi run check-all` before committing changes
 - Use pre-commit hooks for automated quality checks

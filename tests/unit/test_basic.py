@@ -3,28 +3,23 @@
 import pytest
 from autoframe.types import DataFrameCreationError
 from autoframe.frames.core import create_dataframe
-from autoframe.config import AutoFrameConfig
 
 
 def test_imports():
     """Test that all core modules can be imported."""
     import autoframe
     import autoframe.types
-    import autoframe.sources.base
+    import autoframe.mongodb
     import autoframe.frames.core
-    import autoframe.config
-    import autoframe.logging
     assert autoframe.__version__ == "0.1.0"
 
 
-def test_config():
-    """Test configuration management."""
-    config = AutoFrameConfig()
-    assert config.get("dataframes", "default_backend") == "pandas"
-    
-    # Test validation
-    result = config.validate()
-    assert result.is_ok()
+def test_mongodb_import():
+    """Test MongoDB module import."""
+    import autoframe.mongodb as mongodb
+    assert hasattr(mongodb, 'to_dataframe')
+    assert hasattr(mongodb, 'fetch')
+    assert hasattr(mongodb, 'connect_mongodb')
 
 
 def test_create_dataframe_from_documents():

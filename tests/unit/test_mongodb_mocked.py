@@ -5,7 +5,7 @@ These tests use mocks to test the MongoDB functionality without requiring a real
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from autoframe.sources.simple import fetch, connect_mongodb, count, fetch_in_batches
+from autoframe.mongodb import fetch, connect_mongodb, count, fetch_in_batches
 import autoframe.mongodb as mongodb
 from autoframe.types import DataSourceError
 import pymongo
@@ -14,7 +14,7 @@ import pymongo
 class TestMongoDBConnectionMocked:
     """Test MongoDB connection with mocked pymongo."""
     
-    @patch('autoframe.sources.simple.pymongo.MongoClient')
+    @patch('autoframe.mongodb.pymongo.MongoClient')
     def test_connect_mongodb_success(self, mock_client_class):
         """Test successful MongoDB connection with mock."""
         # Setup mock
@@ -33,7 +33,7 @@ class TestMongoDBConnectionMocked:
         )
         mock_client.admin.command.assert_called_once_with('ping')
     
-    @patch('autoframe.sources.simple.pymongo.MongoClient')
+    @patch('autoframe.mongodb.pymongo.MongoClient')
     def test_connect_mongodb_failure(self, mock_client_class):
         """Test failed MongoDB connection with mock."""
         # Setup mock to raise exception
@@ -46,7 +46,7 @@ class TestMongoDBConnectionMocked:
         assert isinstance(error, DataSourceError)
         assert "Connection failed" in str(error)
     
-    @patch('autoframe.sources.simple.pymongo.MongoClient')
+    @patch('autoframe.mongodb.pymongo.MongoClient')
     def test_connect_mongodb_ping_failure(self, mock_client_class):
         """Test MongoDB connection where ping fails."""
         # Setup mock
@@ -64,7 +64,7 @@ class TestMongoDBConnectionMocked:
 class TestMongoDBFetchMocked:
     """Test MongoDB fetch functionality with mocked connections."""
     
-    @patch('autoframe.sources.simple.connect_mongodb')
+    @patch('autoframe.mongodb.connect_mongodb')
     def test_fetch_success(self, mock_connect):
         """Test successful document fetching with mock."""
         # Setup mock client and proper chaining
@@ -97,7 +97,7 @@ class TestMongoDBFetchMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.sources.simple.connect_mongodb')
+    @patch('autoframe.mongodb.connect_mongodb')
     def test_fetch_with_query(self, mock_connect):
         """Test fetching with query filter using mock."""
         # Setup mock client and proper chaining
@@ -127,7 +127,7 @@ class TestMongoDBFetchMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.sources.simple.connect_mongodb')
+    @patch('autoframe.mongodb.connect_mongodb')
     def test_fetch_connection_failure(self, mock_connect):
         """Test fetch with connection failure."""
         from logerr import Err
@@ -143,7 +143,7 @@ class TestMongoDBFetchMocked:
 class TestMongoDBCountMocked:
     """Test MongoDB count functionality with mocked connections."""
     
-    @patch('autoframe.sources.simple.connect_mongodb')
+    @patch('autoframe.mongodb.connect_mongodb')
     def test_count_success(self, mock_connect):
         """Test successful document counting with mock."""
         # Setup mock client and mock the entire call chain
@@ -168,7 +168,7 @@ class TestMongoDBCountMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.sources.simple.connect_mongodb')  
+    @patch('autoframe.mongodb.connect_mongodb')  
     def test_count_with_query(self, mock_connect):
         """Test counting with query filter using mock."""
         # Setup mock client and mock the entire call chain
@@ -198,7 +198,7 @@ class TestMongoDBCountMocked:
 class TestMongoDBBatchesMocked:
     """Test MongoDB batch fetching with mocked connections."""
     
-    @patch('autoframe.sources.simple.connect_mongodb')
+    @patch('autoframe.mongodb.connect_mongodb')
     def test_fetch_in_batches_success(self, mock_connect):
         """Test successful batch fetching with mock."""
         # Simplified test that focuses on the key functionality

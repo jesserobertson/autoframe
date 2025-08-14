@@ -154,9 +154,9 @@ def retry_with_backoff(
                 result = execute(func)
                 
                 match result:
-                    case Ok(_):
+                    case Ok():
                         return result
-                    case Err(_):
+                    case Err():
                         # Result is an error
                         last_result = result
                 
@@ -209,10 +209,10 @@ def retry_on_condition(
                 result = execute(func)
                 
                 match result:
-                    case Ok(_):
+                    case Ok():
                         return result
-                    case Err(exception):
-                        last_exception = exception
+                    case Err() as err:
+                        last_exception = err.unwrap_err()
                 
                 if attempt < max_attempts - 1 and condition(exception):
                     logger.warning(
@@ -295,9 +295,9 @@ def retry_result(
         result = result_func()
         
         match result:
-            case Ok(_):
+            case Ok():
                 return result
-            case Err(_):
+            case Err():
                 last_result = result
         
         if attempt < max_attempts - 1:
@@ -335,9 +335,10 @@ def batch_with_retry(
         )
         
         match batch_result:
-            case Err(_):
+            case Err():
                 return batch_result
-            case Ok(batch_data):
+            case Ok() as ok:
+                batch_data = ok.unwrap()
                 results.append(batch_data)
     
     return execute(lambda: results)

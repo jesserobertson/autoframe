@@ -4,12 +4,12 @@ This module provides MongoDB-specific functions for data extraction and DataFram
 All MongoDB functionality is consolidated here for simplicity.
 """
 
-from typing import Optional, Dict, Any, List, Callable
+from typing import Callable, Any
 from functools import partial
 import pymongo
 
-from logerr import Result, Ok, Err
-from logerr.utils import execute
+from logerr import Result, Ok, Err  # type: ignore
+from logerr.utils import execute  # type: ignore
 from autoframe.types import DataFrameResult, DataSourceResult, DocumentList, DataSourceError, QueryDict
 from autoframe.quality import log_result_failure, log_conversion_operation
 from autoframe.utils.functional import to_dataframe as _to_dataframe, apply_schema
@@ -20,9 +20,9 @@ def to_dataframe(
     connection_string: str,
     database: str,
     collection: str,
-    query: Optional[Dict[str, Any]] = None,
-    limit: Optional[int] = None,
-    schema: Optional[Dict[str, str]] = None,
+    query: dict[str, Any] | None = None,
+    limit: int | None = None,
+    schema: dict[str, str] | None = None,
     backend: str = "pandas"
 ) -> DataFrameResult:
     """Convert MongoDB collection to DataFrame.
@@ -118,8 +118,8 @@ def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataS
         >>> client = client_result.unwrap()
     """
     @with_database_retry
-    def connect():
-        client = pymongo.MongoClient(connection_string, serverSelectionTimeoutMS=3000)
+    def connect() -> pymongo.MongoClient:
+        client: pymongo.MongoClient = pymongo.MongoClient(connection_string, serverSelectionTimeoutMS=3000)
         client.admin.command('ping')  # Test connection
         return client
     
@@ -130,8 +130,8 @@ def fetch(
     connection_string: str,
     database: str, 
     collection: str,
-    query: Optional[QueryDict] = None,
-    limit: Optional[int] = None
+    query: QueryDict | None = None,
+    limit: int | None = None
 ) -> DataSourceResult[DocumentList]:
     """Fetch documents from MongoDB with retry logic.
     
@@ -143,7 +143,7 @@ def fetch(
         limit: Optional result limit
         
     Returns:
-        Result[List[Dict], DataSourceError]
+        Result[list[dict], DataSourceError]
         
     Examples:
         >>> docs = fetch(
@@ -164,7 +164,7 @@ def count(
     connection_string: str,
     database: str,
     collection: str, 
-    query: Optional[QueryDict] = None
+    query: QueryDict | None = None
 ) -> DataSourceResult[int]:
     """Count documents in MongoDB collection.
     
@@ -187,7 +187,7 @@ def create_fetcher(
     connection_string: str,
     database: str,
     collection: str
-) -> Callable[[Optional[QueryDict], Optional[int]], DataSourceResult[DocumentList]]:
+) -> Callable[[QueryDict | None, int | None], DataSourceResult[DocumentList]]:
     """Create a specialized document fetcher function.
     
     Args:
@@ -211,8 +211,8 @@ def fetch_in_batches(
     database: str,
     collection: str,
     batch_size: int = 1000,
-    query: Optional[QueryDict] = None
-) -> Result[List[DocumentList], DataSourceError]:
+    query: QueryDict | None = None
+) -> Result[list[DocumentList], DataSourceError]:
     """Fetch documents in batches with retry logic for large datasets.
     
     Args:
@@ -223,7 +223,7 @@ def fetch_in_batches(
         query: Optional query filter
         
     Returns:
-        Result[List[List[Dict]], DataSourceError]: List of batches
+        Result[list[list[dict]], DataSourceError]: List of batches
         
     Examples:
         >>> batches_result = fetch_in_batches("mongodb://localhost", "db", "coll", 500)
@@ -243,11 +243,11 @@ def _query_collection(
     client: pymongo.MongoClient,
     database: str,
     collection: str,
-    query: Optional[QueryDict],
-    limit: Optional[int]
+    query: QueryDict | None,
+    limit: int | None
 ) -> DataSourceResult[DocumentList]:
     """Query a MongoDB collection."""
-    def query_docs():
+    def query_collection() -> DocumentList:
         coll = client[database][collection]
         cursor = coll.find(query or {})
         
@@ -258,7 +258,7 @@ def _query_collection(
         client.close()
         return documents
     
-    return execute(query_docs).map_err(
+    return execute(query_collection).map_err(
         lambda e: DataSourceError(f"Query failed: {str(e)}")
     )
 
@@ -267,16 +267,16 @@ def _count_collection(
     client: pymongo.MongoClient,
     database: str,
     collection: str,
-    query: Optional[QueryDict]
+    query: QueryDict | None
 ) -> DataSourceResult[int]:
     """Count documents in a MongoDB collection."""
-    def count_docs():
+    def count_collection() -> int:
         coll = client[database][collection]
         count = coll.count_documents(query or {})
         client.close()
         return count
     
-    return execute(count_docs).map_err(
+    return execute(count_collection).map_err(
         lambda e: DataSourceError(f"Count failed: {str(e)}")
     )
 
@@ -286,15 +286,15 @@ def _fetch_batches_from_client_with_retry(
     database: str,
     collection: str,
     batch_size: int,
-    query: Optional[QueryDict]
-) -> Result[List[DocumentList], DataSourceError]:
+    query: QueryDict | None
+) -> Result[list[DocumentList], DataSourceError]:
     """Fetch documents in batches from an established client connection with retry."""
     @with_database_retry  
-    def fetch_batches():
+    def fetch_batches() -> list[DocumentList]:
         collection_obj = client[database][collection]
         
         total_docs = collection_obj.count_documents(query or {})
-        batches = []
+        batches: list[DocumentList] = []
         
         for skip in range(0, total_docs, batch_size):
             cursor = collection_obj.find(query or {}).skip(skip).limit(batch_size)

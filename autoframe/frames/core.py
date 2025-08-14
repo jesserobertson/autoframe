@@ -4,7 +4,7 @@ This module provides the main interface for creating dataframes from various dat
 with integrated quality assessment and functional error handling.
 """
 
-from typing import Optional, Dict, Any, List, Callable, Union
+from typing import Callable, Any
 import pandas as pd
 
 try:
@@ -18,12 +18,10 @@ from autoframe.types import (
     DataFrameType,
     DocumentList,
     DataFrameCreationError,
-    QualityResult,
     FieldName
 )
-# Note: DataSourceAdapter and QueryBuilder removed - using direct MongoDB functions
-from logerr import Result, Option, Ok, Err
-from logerr.utils import execute
+from logerr import Result, Ok, Err  # type: ignore
+from logerr.utils import execute  # type: ignore
 
 
 class DataFrameFactory:
@@ -37,8 +35,8 @@ class DataFrameFactory:
     def from_documents(
         documents: DocumentList,
         backend: str = "pandas",
-        schema: Optional[Dict[str, str]] = None,
-        transform: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+        schema: dict[str, str] | None = None,
+        transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None
     ) -> DataFrameResult:
         """Create a dataframe from a list of documents using Result types.
         
@@ -51,7 +49,7 @@ class DataFrameFactory:
         Returns:
             Result[DataFrame, DataFrameCreationError]: Created dataframe or error
         """
-        def create_df():
+        def create_df() -> DataFrameResult:
             if not documents:
                 return Ok(pd.DataFrame() if backend == "pandas" else pl.DataFrame())
             
@@ -73,39 +71,12 @@ class DataFrameFactory:
                      DataFrameCreationError(f"Failed to create dataframe: {str(e)}")
         )
     
-    @staticmethod
-    def from_query_builder(
-        query_builder: QueryBuilder,
-        backend: str = "pandas",
-        schema: Optional[Dict[str, str]] = None,
-        transform: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
-    ) -> DataFrameResult:
-        """Create a dataframe from a query builder.
-        
-        Args:
-            query_builder: Configured query builder
-            backend: Dataframe backend ("pandas" or "polars")
-            schema: Optional schema specification for type conversion
-            transform: Optional transformation function applied to each document
-            
-        Returns:
-            Result[DataFrame, DataFrameCreationError]: Created dataframe or error
-        """
-        # Execute the query
-        query_result = query_builder.execute()
-        
-        return query_result.then(
-            lambda documents: DataFrameFactory.from_documents(
-                documents, backend, schema, transform
-            )
-        ).map_err(
-            lambda source_error: DataFrameCreationError(f"Query failed: {str(source_error)}")
-        )
+    # QueryBuilder pattern removed - use direct MongoDB functions instead
     
     @staticmethod
     def _create_pandas_dataframe(
         documents: DocumentList, 
-        schema: Optional[Dict[str, str]] = None
+        schema: dict[str, str] | None = None
     ) -> DataFrameResult:
         """Create a pandas DataFrame from documents using Result types.
         
@@ -116,7 +87,7 @@ class DataFrameFactory:
         Returns:
             Result[pd.DataFrame, DataFrameCreationError]: Created dataframe or error
         """
-        def create_pandas():
+        def create_pandas() -> DataFrameType:
             df = pd.DataFrame(documents)
             
             if schema:
@@ -131,7 +102,7 @@ class DataFrameFactory:
     @staticmethod
     def _create_polars_dataframe(
         documents: DocumentList,
-        schema: Optional[Dict[str, str]] = None
+        schema: dict[str, str] | None = None
     ) -> DataFrameResult:
         """Create a polars DataFrame from documents using Result types.
         
@@ -145,7 +116,7 @@ class DataFrameFactory:
         if not POLARS_AVAILABLE:
             return Err(DataFrameCreationError("Polars not available"))
         
-        def create_polars():
+        def create_polars() -> DataFrameType:
             df = pl.DataFrame(documents)
             
             if schema:
@@ -158,7 +129,7 @@ class DataFrameFactory:
         )
     
     @staticmethod
-    def _apply_pandas_schema(df: pd.DataFrame, schema: Dict[str, str]) -> pd.DataFrame:
+    def _apply_pandas_schema(df: pd.DataFrame, schema: dict[str, str]) -> pd.DataFrame:
         """Apply schema to pandas DataFrame using Result types.
         
         Args:
@@ -177,7 +148,7 @@ class DataFrameFactory:
         }
         
         for field, field_type in schema.items():
-            if field in df.columns:
+            if field in df.columns:  # type: ignore
                 pandas_type = type_mapping.get(field_type, "object")
                 
                 def convert_field():
@@ -194,7 +165,7 @@ class DataFrameFactory:
         return df
     
     @staticmethod
-    def _apply_polars_schema(df: "pl.DataFrame", schema: Dict[str, str]) -> "pl.DataFrame":
+    def _apply_polars_schema(df: "pl.DataFrame", schema: dict[str, str]) -> "pl.DataFrame":
         """Apply schema to polars DataFrame using Result types.
         
         Args:
@@ -217,7 +188,7 @@ class DataFrameFactory:
         
         cast_expressions = []
         for field, field_type in schema.items():
-            if field in df.columns:
+            if field in df.columns:  # type: ignore
                 polars_type = type_mapping.get(field_type)
                 if polars_type:
                     cast_expr_result = execute(lambda: pl.col(field).cast(polars_type))
@@ -232,17 +203,17 @@ class DataFrameFactory:
 
 
 def create_dataframe(
-    source: Union[DataSourceAdapter, QueryBuilder, DocumentList],
+    documents: DocumentList,
     backend: str = "pandas",
-    schema: Optional[Dict[str, str]] = None,
-    transform: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+    schema: dict[str, str] | None = None,
+    transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 ) -> DataFrameResult:
-    """Convenience function to create a dataframe from various sources.
+    """Create a dataframe from a list of documents.
     
-    This is the main entry point for dataframe creation in autoframe.
+    Simplified API - use autoframe.mongodb.to_dataframe() for direct MongoDB access.
     
     Args:
-        source: Data source (adapter, query builder, or document list)
+        documents: List of document dictionaries
         backend: Dataframe backend ("pandas" or "polars")
         schema: Optional schema specification for type conversion
         transform: Optional transformation function applied to each document
@@ -262,12 +233,7 @@ def create_dataframe(
         >>> len(df)
         2
     """
-    if isinstance(source, QueryBuilder):
-        return DataFrameFactory.from_query_builder(source, backend, schema, transform)
-    elif isinstance(source, list):
-        return DataFrameFactory.from_documents(source, backend, schema, transform)
-    else:
-        return Err(DataFrameCreationError(f"Unsupported source type: {type(source)}"))
+    return DataFrameFactory.from_documents(documents, backend, schema, transform)
 
 
 class DataFrameProcessor:
@@ -296,7 +262,7 @@ class DataFrameProcessor:
     @staticmethod
     def validate_columns(
         df_result: DataFrameResult,
-        required_columns: List[FieldName]
+        required_columns: list[FieldName]
     ) -> DataFrameResult:
         """Validate that required columns exist in the dataframe.
         
@@ -309,9 +275,9 @@ class DataFrameProcessor:
         """
         def validate(df: DataFrameType) -> DataFrameType:
             if isinstance(df, pd.DataFrame):
-                missing = set(required_columns) - set(df.columns)
+                missing = set(required_columns) - set(df.columns)  # type: ignore
             elif POLARS_AVAILABLE and isinstance(df, pl.DataFrame):
-                missing = set(required_columns) - set(df.columns)
+                missing = set(required_columns) - set(df.columns)  # type: ignore
             else:
                 missing = set()
                 

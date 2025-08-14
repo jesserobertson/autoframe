@@ -5,7 +5,7 @@ to capture error information transparently without manual logging calls.
 The goal is transparent error handling through the Result framework.
 """
 
-from typing import Dict, Any, Optional, TypeVar
+from typing import TypeVar, Any
 
 from loguru import logger
 from logerr import Result, Ok, Err
@@ -16,7 +16,7 @@ T = TypeVar('T')
 E = TypeVar('E')
 
 
-def log_result_failure(result: Result[T, E], operation: str, context: Optional[Dict[str, Any]] = None) -> Result[T, E]:
+def log_result_failure(result: Result[T, E], operation: str, context: dict[str, Any] | None = None) -> Result[T, E]:
     """Automatically log when a Result contains an error.
     
     This function provides transparent error logging - it logs failures automatically
@@ -41,7 +41,8 @@ def log_result_failure(result: Result[T, E], operation: str, context: Optional[D
         True
     """
     match result:
-        case Err(error):
+        case Err() as err:
+            error = err.unwrap_err()
             log_context = {
                 "operation": operation,
                 "error_type": type(error).__name__,
@@ -49,7 +50,7 @@ def log_result_failure(result: Result[T, E], operation: str, context: Optional[D
                 **(context or {})
             }
             logger.error(f"Operation failed: {operation}", **log_context)
-        case Ok(_):
+        case Ok():
             pass  # Success - no logging needed
     
     return result
@@ -71,7 +72,8 @@ def log_conversion_operation(df_result: DataFrameResult, backend: str,
         The original result unchanged (for chaining)
     """
     match df_result:
-        case Ok(df):
+        case Ok() as ok:
+            df = ok.unwrap()
             log_context = {
                 "operation": "dataframe_conversion",
                 "backend": backend,
@@ -80,7 +82,7 @@ def log_conversion_operation(df_result: DataFrameResult, backend: str,
                 "output_columns": len(df.columns)
             }
             logger.info(f"DataFrame conversion successful: {document_count} docs → {len(df)} rows", **log_context)
-        case Err(_):
+        case Err():
             # Error already logged by log_result_failure, just add conversion context
             log_context = {
                 "operation": "dataframe_conversion", 

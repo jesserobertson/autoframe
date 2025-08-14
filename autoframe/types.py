@@ -4,14 +4,21 @@ This module provides type aliases and common types used throughout the autoframe
 building on the functional programming patterns from logerr.
 """
 
-from typing import TypeVar, Union, Dict, Any, List, Optional
+from typing import TypeVar, Any, TYPE_CHECKING
 import pandas as pd
 
-try:
-    import polars as pl
-    POLARS_AVAILABLE = True
-except ImportError:
-    POLARS_AVAILABLE = False
+if TYPE_CHECKING:
+    try:
+        import polars as pl
+        POLARS_AVAILABLE = True
+    except ImportError:
+        POLARS_AVAILABLE = False
+else:
+    try:
+        import polars as pl
+        POLARS_AVAILABLE = True
+    except ImportError:
+        POLARS_AVAILABLE = False
 
 from logerr import Result, Option, Ok, Err
 
@@ -23,10 +30,14 @@ E = TypeVar("E")
 ResultType = Result[T, E]
 OptionType = Option[T]
 
-# Data types
-DataFrameType = Union[pd.DataFrame, "pl.DataFrame"] if POLARS_AVAILABLE else pd.DataFrame
-QueryDict = Dict[str, Any]
-DocumentList = List[Dict[str, Any]]
+# Data types - use modern type statement
+if POLARS_AVAILABLE:
+    import polars as pl
+    type DataFrameType = pd.DataFrame | pl.DataFrame
+else:
+    type DataFrameType = pd.DataFrame
+type QueryDict = dict[str, Any]
+type DocumentList = list[dict[str, Any]]
 
 # Error types for autoframe operations
 class AutoFrameError(Exception):
@@ -55,13 +66,13 @@ DataFrameResult = Result[DataFrameType, DataFrameCreationError]
 QualityResult = Result[T, QualityValidationError]
 ConfigResult = Result[T, ConfigurationError]
 
-# Connection and query types
-ConnectionString = str
-DatabaseName = str
-CollectionName = str
-FieldName = str
+# Connection and query types  
+type ConnectionString = str
+type DatabaseName = str
+type CollectionName = str
+type FieldName = str
 
 # Quality reporting types
-QualityScore = float  # 0.0 to 1.0
-QualityMetrics = Dict[str, Union[int, float, str]]
-QualityThreshold = float
+type QualityScore = float  # 0.0 to 1.0
+type QualityMetrics = dict[str, int | float | str]
+type QualityThreshold = float

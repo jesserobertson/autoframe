@@ -4,10 +4,10 @@ This module provides high-level composable functions for creating
 data processing pipelines in the logerr functional style.
 """
 
-from typing import Callable, Dict, Any, List, Optional
+from typing import Callable, Any
 from functools import partial
 
-from logerr import Result
+from logerr import Result  # type: ignore
 from autoframe.types import DataFrameResult, DocumentList, DataSourceResult
 from autoframe.mongodb import fetch, create_fetcher
 from autoframe.quality import log_result_failure, log_conversion_operation
@@ -57,17 +57,17 @@ class DataPipeline:
     
     def __init__(self, fetch_fn: Callable[[], DataSourceResult[DocumentList]]):
         self.fetch_fn = fetch_fn
-        self.transforms = []
-        self.df_transforms = []
+        self.transforms: list[Callable] = []
+        self.df_transforms: list[Callable] = []
         self.target_backend = "pandas"
-        self.target_schema = None
+        self.target_schema: dict[str, str] | None = None
     
-    def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> "DataPipeline":
+    def filter(self, predicate: Callable[[dict[str, Any]], bool]) -> "DataPipeline":
         """Add document filtering to pipeline."""
         self.transforms.append(filter(predicate))
         return self
     
-    def transform(self, transform_fn: Callable[[Dict[str, Any]], Dict[str, Any]]) -> "DataPipeline":
+    def transform(self, transform_fn: Callable[[dict[str, Any]], dict[str, Any]]) -> "DataPipeline":
         """Add document transformation to pipeline."""
         self.transforms.append(transform(transform_fn))
         return self
@@ -82,12 +82,12 @@ class DataPipeline:
         self.target_backend = backend
         return self
     
-    def apply_schema(self, schema: Dict[str, str]) -> "DataPipeline":
+    def apply_schema(self, schema: dict[str, str]) -> "DataPipeline":
         """Apply schema to dataframe in pipeline."""
         self.target_schema = schema
         return self
     
-    def validate(self, required_columns: List[str]) -> "DataPipeline":
+    def validate(self, required_columns: list[str]) -> "DataPipeline":
         """Add column validation to pipeline.""" 
         self.df_transforms.append(validate_columns(required_columns))
         return self

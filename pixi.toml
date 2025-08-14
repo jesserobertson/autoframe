@@ -33,6 +33,7 @@ pre-commit = ">=4.2.0,<5"
 # Build and distribution
 python-build = ">=1.2.2.post1,<2"
 twine = ">=6.1.0,<7"
+pandas-stubs = ">=2.3.0.250703,<3"
 
 [feature.docs.dependencies]
 mkdocs = "*"
