@@ -13,6 +13,7 @@ __email__ = "jess.robertson@niwa.co.nz"
 from autoframe.pipeline import mongodb_to_dataframe, create_pipeline, fetch_and_process, quick_dataframe
 from autoframe.sources.simple import fetch_documents, fetch_documents_with_retry, create_fetcher
 from autoframe.utils.functional import to_dataframe, apply_schema, pipe
+from autoframe.utils.retry import with_database_retry, with_network_retry, retry_with_backoff
 
 __all__ = [
     # Core functional API
@@ -24,5 +25,9 @@ __all__ = [
     "to_dataframe",
     "apply_schema", 
     "pipe",
+    # Retry utilities
+    "with_database_retry",
+    "with_network_retry", 
+    "retry_with_backoff",
     "__version__",
 ]

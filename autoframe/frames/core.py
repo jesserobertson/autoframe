@@ -23,6 +23,7 @@ from autoframe.types import (
 )
 from autoframe.sources.base import DataSourceAdapter, QueryBuilder
 from logerr import Result, Option, Ok, Err
+from logerr.utils import execute
 
 
 class DataFrameFactory:
@@ -39,7 +40,7 @@ class DataFrameFactory:
         schema: Optional[Dict[str, str]] = None,
         transform: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
     ) -> DataFrameResult:
-        """Create a dataframe from a list of documents.
+        """Create a dataframe from a list of documents using Result types.
         
         Args:
             documents: List of document dictionaries
@@ -50,26 +51,27 @@ class DataFrameFactory:
         Returns:
             Result[DataFrame, DataFrameCreationError]: Created dataframe or error
         """
-        try:
+        def create_df():
             if not documents:
                 return Ok(pd.DataFrame() if backend == "pandas" else pl.DataFrame())
             
             # Apply transformation if provided
-            if transform:
-                documents = [transform(doc) for doc in documents]
+            transformed_docs = [transform(doc) for doc in documents] if transform else documents
             
             if backend == "pandas":
-                return DataFrameFactory._create_pandas_dataframe(documents, schema)
+                return DataFrameFactory._create_pandas_dataframe(transformed_docs, schema)
             elif backend == "polars" and POLARS_AVAILABLE:
-                return DataFrameFactory._create_polars_dataframe(documents, schema)
+                return DataFrameFactory._create_polars_dataframe(transformed_docs, schema)
             else:
                 error_msg = f"Unsupported backend: {backend}"
                 if backend == "polars" and not POLARS_AVAILABLE:
                     error_msg += " (polars not installed)"
-                return Err(DataFrameCreationError(error_msg))
-                
-        except Exception as e:
-            return Err(DataFrameCreationError(f"Failed to create dataframe: {str(e)}"))
+                raise DataFrameCreationError(error_msg)
+        
+        return execute(create_df).then(lambda result: result).map_err(
+            lambda e: e if isinstance(e, DataFrameCreationError) else 
+                     DataFrameCreationError(f"Failed to create dataframe: {str(e)}")
+        )
     
     @staticmethod
     def from_query_builder(
@@ -105,7 +107,7 @@ class DataFrameFactory:
         documents: DocumentList, 
         schema: Optional[Dict[str, str]] = None
     ) -> DataFrameResult:
-        """Create a pandas DataFrame from documents.
+        """Create a pandas DataFrame from documents using Result types.
         
         Args:
             documents: List of document dictionaries
@@ -114,23 +116,24 @@ class DataFrameFactory:
         Returns:
             Result[pd.DataFrame, DataFrameCreationError]: Created dataframe or error
         """
-        try:
+        def create_pandas():
             df = pd.DataFrame(documents)
             
             if schema:
                 df = DataFrameFactory._apply_pandas_schema(df, schema)
             
-            return Ok(df)
-            
-        except Exception as e:
-            return Err(DataFrameCreationError(f"Pandas dataframe creation failed: {str(e)}"))
+            return df
+        
+        return execute(create_pandas).map_err(
+            lambda e: DataFrameCreationError(f"Pandas dataframe creation failed: {str(e)}")
+        )
     
     @staticmethod
     def _create_polars_dataframe(
         documents: DocumentList,
         schema: Optional[Dict[str, str]] = None
     ) -> DataFrameResult:
-        """Create a polars DataFrame from documents.
+        """Create a polars DataFrame from documents using Result types.
         
         Args:
             documents: List of document dictionaries
@@ -141,21 +144,22 @@ class DataFrameFactory:
         """
         if not POLARS_AVAILABLE:
             return Err(DataFrameCreationError("Polars not available"))
-            
-        try:
+        
+        def create_polars():
             df = pl.DataFrame(documents)
             
             if schema:
                 df = DataFrameFactory._apply_polars_schema(df, schema)
             
-            return Ok(df)
-            
-        except Exception as e:
-            return Err(DataFrameCreationError(f"Polars dataframe creation failed: {str(e)}"))
+            return df
+        
+        return execute(create_polars).map_err(
+            lambda e: DataFrameCreationError(f"Polars dataframe creation failed: {str(e)}")
+        )
     
     @staticmethod
     def _apply_pandas_schema(df: pd.DataFrame, schema: Dict[str, str]) -> pd.DataFrame:
-        """Apply schema to pandas DataFrame.
+        """Apply schema to pandas DataFrame using Result types.
         
         Args:
             df: DataFrame to apply schema to
@@ -175,20 +179,23 @@ class DataFrameFactory:
         for field, field_type in schema.items():
             if field in df.columns:
                 pandas_type = type_mapping.get(field_type, "object")
-                try:
+                
+                def convert_field():
                     if pandas_type == "datetime64[ns]":
-                        df[field] = pd.to_datetime(df[field], errors="coerce")
+                        return pd.to_datetime(df[field], errors="coerce")
                     else:
-                        df[field] = df[field].astype(pandas_type, errors="ignore")
-                except Exception:
-                    # If conversion fails, leave as original type
-                    pass
+                        return df[field].astype(pandas_type, errors="ignore")
+                
+                # Use Result types but keep original if conversion fails
+                converted_result = execute(convert_field)
+                if converted_result.is_ok():
+                    df[field] = converted_result.unwrap()
         
         return df
     
     @staticmethod
     def _apply_polars_schema(df: "pl.DataFrame", schema: Dict[str, str]) -> "pl.DataFrame":
-        """Apply schema to polars DataFrame.
+        """Apply schema to polars DataFrame using Result types.
         
         Args:
             df: DataFrame to apply schema to
@@ -213,19 +220,13 @@ class DataFrameFactory:
             if field in df.columns:
                 polars_type = type_mapping.get(field_type)
                 if polars_type:
-                    try:
-                        cast_expressions.append(pl.col(field).cast(polars_type))
-                    except Exception:
-                        # If cast fails, keep original
-                        cast_expressions.append(pl.col(field))
+                    cast_expr_result = execute(lambda: pl.col(field).cast(polars_type))
+                    cast_expressions.append(cast_expr_result.unwrap_or(pl.col(field)))
                 else:
                     cast_expressions.append(pl.col(field))
         
         if cast_expressions:
-            try:
-                return df.with_columns(cast_expressions)
-            except Exception:
-                return df
+            return execute(lambda: df.with_columns(cast_expressions)).unwrap_or(df)
         
         return df
 

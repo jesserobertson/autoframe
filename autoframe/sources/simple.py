@@ -7,15 +7,14 @@ in functional pipelines, following logerr patterns.
 from typing import Optional, Dict, Any, List, Callable
 from functools import partial
 import pymongo
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 from logerr import Result, Ok, Err
 from logerr.utils import execute
 from autoframe.types import DataSourceResult, DocumentList, DataSourceError, QueryDict
+from autoframe.utils.retry import with_database_retry, batch_with_retry
 
 
 def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataSourceError]:
-    """Connect to MongoDB - simple function.
+    """Connect to MongoDB with automatic retry logic.
     
     Args:
         connection_string: MongoDB connection string
@@ -27,14 +26,13 @@ def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataS
         >>> client_result = connect_mongodb("mongodb://localhost:27017")
         >>> client = client_result.unwrap()
     """
+    @with_database_retry
     def connect():
         client = pymongo.MongoClient(connection_string, serverSelectionTimeoutMS=3000)
         client.admin.command('ping')  # Test connection
         return client
     
-    return execute(connect).map_err(
-        lambda e: DataSourceError(f"MongoDB connection failed: {str(e)}")
-    )
+    return connect()
 
 
 def fetch_documents(
@@ -44,7 +42,7 @@ def fetch_documents(
     query: Optional[QueryDict] = None,
     limit: Optional[int] = None
 ) -> DataSourceResult[DocumentList]:
-    """Fetch documents from MongoDB - simple and composable.
+    """Fetch documents from MongoDB with retry logic.
     
     Args:
         connection_string: MongoDB connection string
@@ -117,7 +115,6 @@ def create_fetcher(
     return partial(fetch_documents, connection_string, database, collection)
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
 def fetch_documents_with_retry(
     connection_string: str,
     database: str,
@@ -128,6 +125,7 @@ def fetch_documents_with_retry(
     """Fetch documents with automatic retry logic.
     
     Same as fetch_documents but with built-in retry for transient failures.
+    Note: fetch_documents now has retry built-in, so this is just an alias.
     """
     return fetch_documents(connection_string, database, collection, query, limit)
 
@@ -139,7 +137,7 @@ def fetch_in_batches(
     batch_size: int = 1000,
     query: Optional[QueryDict] = None
 ) -> Result[List[DocumentList], DataSourceError]:
-    """Fetch documents in batches for large datasets.
+    """Fetch documents in batches with retry logic for large datasets.
     
     Args:
         connection_string: MongoDB connection string
@@ -157,24 +155,9 @@ def fetch_in_batches(
         ...     df = to_dataframe(batch).unwrap()
         ...     # Process each batch
     """
-    def fetch_batches():
-        client = connect_mongodb(connection_string).unwrap()
-        collection_obj = client[database][collection]
-        
-        total_docs = collection_obj.count_documents(query or {})
-        batches = []
-        
-        for skip in range(0, total_docs, batch_size):
-            cursor = collection_obj.find(query or {}).skip(skip).limit(batch_size)
-            batch = list(cursor)
-            if batch:
-                batches.append(batch)
-        
-        client.close()
-        return batches
-    
-    return execute(fetch_batches).map_err(
-        lambda e: DataSourceError(f"Batch fetch failed: {str(e)}")
+    return (
+        connect_mongodb(connection_string)
+        .then(lambda client: _fetch_batches_from_client_with_retry(client, database, collection, batch_size, query))
     )
 
 
@@ -219,3 +202,41 @@ def _count_collection(
     return execute(count_docs).map_err(
         lambda e: DataSourceError(f"Count failed: {str(e)}")
     )
+
+
+def _fetch_batches_from_client_with_retry(
+    client: pymongo.MongoClient,
+    database: str,
+    collection: str,
+    batch_size: int,
+    query: Optional[QueryDict]
+) -> Result[List[DocumentList], DataSourceError]:
+    """Fetch documents in batches from an established client connection with retry."""
+    @with_database_retry  
+    def fetch_batches():
+        collection_obj = client[database][collection]
+        
+        total_docs = collection_obj.count_documents(query or {})
+        batches = []
+        
+        for skip in range(0, total_docs, batch_size):
+            cursor = collection_obj.find(query or {}).skip(skip).limit(batch_size)
+            batch = list(cursor)
+            if batch:
+                batches.append(batch)
+        
+        client.close()
+        return batches
+    
+    return fetch_batches()
+
+
+def _fetch_batches_from_client(
+    client: pymongo.MongoClient,
+    database: str,
+    collection: str,
+    batch_size: int,
+    query: Optional[QueryDict]
+) -> Result[List[DocumentList], DataSourceError]:
+    """Fetch documents in batches from an established client connection (legacy)."""
+    return _fetch_batches_from_client_with_retry(client, database, collection, batch_size, query)

@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from loguru import logger
+from logerr.utils import execute
 
 from autoframe.config import get_config
 
@@ -222,7 +223,7 @@ def log_query_execution(
 
 
 def _sanitize_connection_string(connection_string: str) -> str:
-    """Sanitize connection string for logging by removing credentials.
+    """Sanitize connection string for logging using Result types.
     
     Args:
         connection_string: Original connection string
@@ -230,7 +231,7 @@ def _sanitize_connection_string(connection_string: str) -> str:
     Returns:
         Sanitized connection string
     """
-    try:
+    def sanitize():
         # Basic sanitization - remove anything that looks like credentials
         if "://" in connection_string:
             protocol, rest = connection_string.split("://", 1)
@@ -239,12 +240,12 @@ def _sanitize_connection_string(connection_string: str) -> str:
                 _, host_part = rest.split("@", 1)
                 return f"{protocol}://***@{host_part}"
         return connection_string
-    except Exception:
-        return "***"
+    
+    return execute(sanitize).unwrap_or("***")
 
 
 def _sanitize_query(query: Dict[str, Any]) -> Dict[str, Any]:
-    """Sanitize query dictionary for logging.
+    """Sanitize query dictionary for logging using Result types.
     
     Args:
         query: Original query dictionary
@@ -265,22 +266,20 @@ def _sanitize_query(query: Dict[str, Any]) -> Dict[str, Any]:
             return value[:97] + "..."
         return value
     
-    try:
-        return sanitize_value(query)
-    except Exception:
-        return {"query": "***"}
+    return execute(lambda: sanitize_value(query)).unwrap_or({"query": "***"})
 
 
 # Initialize logging on module import
 def _initialize_default_logging() -> None:
-    """Initialize default logging if not already configured."""
-    try:
+    """Initialize default logging using Result types."""
+    def initialize():
         # Only set up logging if loguru hasn't been configured yet
         if not logger._core.handlers:
             setup_logging()
-    except Exception:
-        # Fail silently if logging setup fails
-        pass
+        return None
+    
+    # Execute initialization and ignore any errors (fail silently)
+    execute(initialize)
 
 
 # Auto-initialize logging

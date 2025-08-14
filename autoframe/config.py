@@ -10,6 +10,7 @@ import os
 
 from confection import Config
 from logerr import Result, Ok, Err
+from logerr.utils import execute
 
 from autoframe.types import ConfigResult, ConfigurationError
 
@@ -67,26 +68,23 @@ class AutoFrameConfig:
         self._load_environment_overrides()
     
     def _load_config_file(self) -> None:
-        """Load configuration from file."""
-        try:
+        """Load configuration from file using Result types."""
+        def load_file():
             if self._config_path.suffix.lower() == '.json':
                 import json
                 with open(self._config_path, 'r') as f:
-                    file_config = json.load(f)
+                    return json.load(f)
             elif self._config_path.suffix.lower() in ['.yml', '.yaml']:
                 import yaml
                 with open(self._config_path, 'r') as f:
-                    file_config = yaml.safe_load(f)
+                    return yaml.safe_load(f)
             else:
                 # Try to use confection for .cfg files
-                file_config = Config().from_disk(self._config_path)
-            
-            # Merge with defaults
-            self._deep_merge(self._config, file_config)
-            
-        except Exception as e:
-            # Don't fail on config load errors, just use defaults
-            pass
+                return Config().from_disk(self._config_path)
+        
+        # Load config file and merge with defaults, or keep defaults on failure
+        file_config_result = execute(load_file)
+        file_config_result.map(lambda config: self._deep_merge(self._config, config))
     
     def _load_environment_overrides(self) -> None:
         """Load configuration overrides from environment variables."""
@@ -192,33 +190,35 @@ class AutoFrameConfig:
         return self.get("quality", default={})
     
     def validate(self) -> ConfigResult[None]:
-        """Validate the current configuration.
+        """Validate the current configuration using Result types.
         
         Returns:
             Result[None, ConfigurationError]: Success or validation error
         """
-        try:
+        def validate_config():
             # Validate MongoDB config
             mongodb_config = self.get_mongodb_config()
             if mongodb_config.get("connection_timeout", 0) <= 0:
-                return Err(ConfigurationError("MongoDB connection_timeout must be positive"))
+                raise ConfigurationError("MongoDB connection_timeout must be positive")
             
             # Validate dataframe config
             df_config = self.get_dataframe_config()
             valid_backends = ["pandas", "polars"]
             if df_config.get("default_backend") not in valid_backends:
-                return Err(ConfigurationError(f"Invalid backend. Must be one of: {valid_backends}"))
+                raise ConfigurationError(f"Invalid backend. Must be one of: {valid_backends}")
             
             # Validate quality config
             quality_config = self.get_quality_config()
             threshold = quality_config.get("quality_threshold", 0.8)
             if not (0.0 <= threshold <= 1.0):
-                return Err(ConfigurationError("Quality threshold must be between 0.0 and 1.0"))
+                raise ConfigurationError("Quality threshold must be between 0.0 and 1.0")
             
-            return Ok(None)
-            
-        except Exception as e:
-            return Err(ConfigurationError(f"Configuration validation failed: {str(e)}"))
+            return None
+        
+        return execute(validate_config).map_err(
+            lambda e: e if isinstance(e, ConfigurationError) else 
+                     ConfigurationError(f"Configuration validation failed: {str(e)}")
+        )
     
     def to_dict(self) -> Dict[str, Any]:
         """Export configuration as dictionary.
@@ -256,7 +256,7 @@ def set_config(config: AutoFrameConfig) -> None:
 
 
 def load_config_from_file(config_path: Union[str, Path]) -> ConfigResult[AutoFrameConfig]:
-    """Load configuration from a file.
+    """Load configuration from a file using Result types.
     
     Args:
         config_path: Path to configuration file
@@ -264,17 +264,19 @@ def load_config_from_file(config_path: Union[str, Path]) -> ConfigResult[AutoFra
     Returns:
         Result[AutoFrameConfig, ConfigurationError]: Loaded configuration or error
     """
-    try:
+    def load_and_validate():
         config = AutoFrameConfig(config_path)
         validation_result = config.validate()
         
         if validation_result.is_err():
-            return Err(validation_result.unwrap_err())
+            raise validation_result.unwrap_err()
         
-        return Ok(config)
-        
-    except Exception as e:
-        return Err(ConfigurationError(f"Failed to load config from {config_path}: {str(e)}"))
+        return config
+    
+    return execute(load_and_validate).map_err(
+        lambda e: e if isinstance(e, ConfigurationError) else 
+                 ConfigurationError(f"Failed to load config from {config_path}: {str(e)}")
+    )
 
 
 def reset_config() -> None:

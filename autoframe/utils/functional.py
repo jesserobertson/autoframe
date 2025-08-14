@@ -122,12 +122,9 @@ def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameT
         ...     lambda docs: to_dataframe(docs).map(apply_schema({"age": "int"})).unwrap()
         ... )
     """
+    # Functional approach - use duck typing since both pandas and polars have similar APIs
     def apply_to_df(df: DataFrameType) -> DataFrameType:
-        if isinstance(df, pd.DataFrame):
-            return _apply_pandas_schema(df, schema)
-        elif POLARS_AVAILABLE and isinstance(df, pl.DataFrame):
-            return _apply_polars_schema(df, schema)
-        return df
+        return _apply_schema_unified(df, schema)
     
     return apply_to_df
 
@@ -272,66 +269,91 @@ def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
     return composed
 
 
-# Private helper functions
-def _apply_pandas_schema(df: pd.DataFrame, schema: Dict[str, str]) -> pd.DataFrame:
-    """Apply schema to pandas DataFrame."""
-    type_mapping = {
-        "int": "int64",
-        "float": "float64", 
-        "string": "object",
-        "datetime": "datetime64[ns]",
-        "bool": "bool"
+# Private helper functions - Functional approach using duck typing
+def _apply_schema_unified(df: DataFrameType, schema: Dict[str, str]) -> DataFrameType:
+    """Apply schema to any dataframe type - truly functional approach with duck typing.
+    
+    Ask for forgiveness, not permission! Try operations and handle failures gracefully.
+    """
+    # Define conversion strategies - no type checking needed!
+    converters = {
+        "int": _convert_to_int,
+        "float": _convert_to_float, 
+        "string": _convert_to_string,
+        "datetime": _convert_to_datetime,
+        "bool": _convert_to_bool
     }
     
+    # Apply conversions functionally - duck typing FTW!
     for field, field_type in schema.items():
-        if field in df.columns:
-            pandas_type = type_mapping.get(field_type, "object")
-            try:
-                if pandas_type == "datetime64[ns]":
-                    df[field] = pd.to_datetime(df[field], errors="coerce")
-                else:
-                    df[field] = df[field].astype(pandas_type, errors="ignore")
-            except Exception:
-                pass  # Keep original type if conversion fails
+        if field in df.columns:  # Both pandas and polars have .columns
+            converter = converters.get(field_type)
+            if converter:
+                # Use Result types but keep original if conversion fails
+                df = execute(lambda: converter(df, field)).unwrap_or(df)
     
     return df
 
 
-def _apply_polars_schema(df: "pl.DataFrame", schema: Dict[str, str]) -> "pl.DataFrame":
-    """Apply schema to polars DataFrame."""
-    if not POLARS_AVAILABLE:
-        return df
-        
-    type_mapping = {
-        "int": pl.Int64,
-        "float": pl.Float64,
-        "string": pl.Utf8,
-        "datetime": pl.Datetime,
-        "bool": pl.Boolean
-    }
+def _convert_to_int(df: DataFrameType, field: str) -> DataFrameType:
+    """Convert field to integer using Result types."""
+    # Try polars first, fall back to pandas
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Int64)))
     
-    for field, field_type in schema.items():
-        if field in df.columns:
-            polars_type = type_mapping.get(field_type)
-            if polars_type:
-                try:
-                    df = df.with_columns(pl.col(field).cast(polars_type))
-                except Exception:
-                    pass  # Keep original type if cast fails
+    return polars_result.unwrap_or_else(lambda _: execute(lambda: (
+        df.copy().assign(**{field: df[field].astype("int64", errors="ignore")})
+    )).unwrap_or(df))
+
+
+def _convert_to_float(df: DataFrameType, field: str) -> DataFrameType:
+    """Convert field to float using Result types.""" 
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Float64)))
     
-    return df
+    return polars_result.unwrap_or_else(lambda _: execute(lambda: (
+        df.copy().assign(**{field: df[field].astype("float64", errors="ignore")})
+    )).unwrap_or(df))
+
+
+def _convert_to_string(df: DataFrameType, field: str) -> DataFrameType:
+    """Convert field to string using Result types."""
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Utf8)))
+    
+    return polars_result.unwrap_or_else(lambda _: execute(lambda: (
+        df.copy().assign(**{field: df[field].astype("object", errors="ignore")})
+    )).unwrap_or(df))
+
+
+def _convert_to_datetime(df: DataFrameType, field: str) -> DataFrameType:
+    """Convert field to datetime using Result types."""
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Datetime)))
+    
+    return polars_result.unwrap_or_else(lambda _: execute(lambda: (
+        df.copy().assign(**{field: pd.to_datetime(df[field], errors="coerce")})
+    )).unwrap_or(df))
+
+
+def _convert_to_bool(df: DataFrameType, field: str) -> DataFrameType:
+    """Convert field to boolean using Result types."""
+    polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Boolean)))
+    
+    return polars_result.unwrap_or_else(lambda _: execute(lambda: (
+        df.copy().assign(**{field: df[field].astype("bool", errors="ignore")})
+    )).unwrap_or(df))
 
 
 def _check_columns(df: DataFrameType, required_cols: List[str]) -> DataFrameResult:
-    """Check if dataframe has required columns."""
-    if isinstance(df, pd.DataFrame):
-        missing = set(required_cols) - set(df.columns)
-    elif POLARS_AVAILABLE and isinstance(df, pl.DataFrame):
-        missing = set(required_cols) - set(df.columns)
-    else:
-        missing = set()
+    """Check if dataframe has required columns using Result types."""
+    def check_cols():
+        # Both pandas and polars have .columns attribute - use duck typing!
+        current_cols = set(df.columns)
+        missing = set(required_cols) - current_cols
         
-    if missing:
-        return Err(DataFrameCreationError(f"Missing required columns: {missing}"))
+        if missing:
+            raise DataFrameCreationError(f"Missing required columns: {missing}")
+        
+        return df
     
-    return Ok(df)
+    return execute(check_cols).map_err(
+        lambda e: e if isinstance(e, DataFrameCreationError) else 
+                 DataFrameCreationError("Invalid dataframe type - no columns attribute")
+    )
