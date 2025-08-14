@@ -1,0 +1,101 @@
+site_name: AutoFrame
+site_description: Functional dataframe creation with data quality reporting
+site_author: Jesse Robertson
+site_url: https://jesserobertson.github.io/autoframe
+
+repo_name: jesserobertson/autoframe
+repo_url: https://github.com/jesserobertson/autoframe
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            merge_init_into_class: true
+            separate_signature: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+    - Examples: examples.md
+  - User Guide:
+    - Core Concepts: concepts.md
+    - Functional API: functional-api.md
+    - Pipeline Interface: pipeline.md
+    - Data Sources: data-sources.md
+    - Quality Assessment: quality.md
+  - API Reference:
+    - Overview: api/index.md
+    - Functional Utilities: api/functional.md
+    - Pipeline: api/pipeline.md
+    - Data Sources: api/sources.md
+    - Types: api/types.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jesserobertson/autoframe
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/autoframe
+
+watch:
+  - autoframe/

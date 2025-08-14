@@ -30,30 +30,53 @@ def mongodb_to_dataframe(
     schema: Optional[Dict[str, str]] = None,
     backend: str = "pandas"
 ) -> DataFrameResult:
-    """Simple MongoDB to DataFrame pipeline.
+    """Simple MongoDB to DataFrame pipeline - one function does it all.
+    
+    This is the simplest way to get data from MongoDB into a DataFrame with
+    optional filtering, limiting, and type conversion.
     
     Args:
-        connection_string: MongoDB connection string
+        connection_string: MongoDB connection string (e.g., "mongodb://localhost:27017")
         database: Database name
         collection: Collection name
-        query: Optional query filter
-        limit: Optional result limit
-        schema: Optional schema for type conversion
+        query: Optional MongoDB query filter (e.g., {"active": True})
+        limit: Optional result limit (e.g., 1000)
+        schema: Optional schema for type conversion (e.g., {"age": "int"})
         backend: "pandas" or "polars"
         
     Returns:
-        Result[DataFrame, Error]
+        Result[DataFrame, Error]: Success contains DataFrame, failure contains error message
         
     Examples:
-        >>> df_result = mongodb_to_dataframe(
-        ...     "mongodb://localhost:27017",
-        ...     "mydb", 
-        ...     "users",
-        ...     query={"active": True},
-        ...     limit=1000,
-        ...     schema={"age": "int", "created_at": "datetime"}
-        ... )
-        >>> df = df_result.unwrap()
+        Basic usage:
+        
+        >>> # Note: These examples assume a running MongoDB instance
+        >>> # df_result = mongodb_to_dataframe(
+        >>> #     "mongodb://localhost:27017", 
+        >>> #     "ecommerce", 
+        >>> #     "orders"
+        >>> # )
+        >>> # df = df_result.unwrap()
+        
+        With filtering and schema:
+        
+        >>> # df_result = mongodb_to_dataframe(
+        >>> #     "mongodb://localhost:27017",
+        >>> #     "ecommerce", 
+        >>> #     "orders",
+        >>> #     query={"status": "completed", "total": {"$gt": 100}},
+        >>> #     limit=500,
+        >>> #     schema={"total": "float", "created_at": "datetime"}
+        >>> # )
+        >>> # if df_result.is_ok():
+        >>> #     df = df_result.unwrap()
+        >>> #     print(f"Retrieved {len(df)} orders")
+        
+        Error handling:
+        
+        >>> # result = mongodb_to_dataframe("invalid://connection", "db", "coll")
+        >>> # if result.is_err():
+        >>> #     print(f"Connection failed: {result.unwrap_err()}")
     """
     result = fetch_documents(connection_string, database, collection, query, limit)
     

@@ -38,23 +38,55 @@ def to_dataframe(
         backend: "pandas" or "polars"
         
     Returns:
-        Result[DataFrame, DataFrameCreationError]
+        Result[DataFrame, DataFrameCreationError]: Success contains DataFrame, failure contains error
         
     Examples:
-        >>> docs = [{"name": "Alice", "age": 30}]
+        Basic usage:
+        
+        >>> docs = [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
         >>> result = to_dataframe(docs)
+        >>> result.is_ok()
+        True
         >>> df = result.unwrap()
+        >>> len(df)
+        2
+        
+        Empty documents:
+        
+        >>> empty_result = to_dataframe([])
+        >>> empty_result.is_ok()
+        True
+        >>> empty_df = empty_result.unwrap()
+        >>> len(empty_df)
+        0
+        
+        Error handling:
+        
+        >>> error_result = to_dataframe([{"test": 1}], backend="invalid")
+        >>> error_result.is_err()
+        True
     """
+    # Define backend constructors - much cleaner!
+    constructors = {
+        "pandas": lambda docs: pd.DataFrame(docs),
+        "polars": lambda docs: pl.DataFrame(docs) if POLARS_AVAILABLE else None
+    }
+    
     def create_df():
         if not documents:
-            return pd.DataFrame() if backend == "pandas" else pl.DataFrame()
+            return constructors[backend]([])
             
-        if backend == "pandas":
-            return pd.DataFrame(documents)
-        elif backend == "polars" and POLARS_AVAILABLE:
-            return pl.DataFrame(documents)
-        else:
+        constructor = constructors.get(backend)
+        if constructor is None:
+            if backend == "polars" and not POLARS_AVAILABLE:
+                raise DataFrameCreationError("Polars not available - install with: pip install polars")
             raise DataFrameCreationError(f"Unsupported backend: {backend}")
+        
+        result = constructor(documents)
+        if result is None:
+            raise DataFrameCreationError(f"Failed to create {backend} dataframe")
+        
+        return result
     
     return execute(create_df).map_err(
         lambda e: DataFrameCreationError(f"DataFrame creation failed: {str(e)}")
@@ -65,15 +97,30 @@ def apply_schema(schema: Dict[str, str]) -> Callable[[DataFrameType], DataFrameT
     """Create a schema application function - composable transform.
     
     Args:
-        schema: Field name to type mapping
+        schema: Field name to type mapping (supports: "int", "float", "string", "datetime", "bool")
         
     Returns:
         Function that applies schema to dataframe
         
     Examples:
-        >>> schema = {"age": "int", "name": "string"}
-        >>> transform = apply_schema(schema)
-        >>> result = to_dataframe(docs).map(transform)
+        Basic schema application:
+        
+        >>> docs = [{"age": "30", "score": "95.5"}, {"age": "25", "score": "87.2"}]
+        >>> schema = {"age": "int", "score": "float"}
+        >>> result = to_dataframe(docs).map(apply_schema(schema))
+        >>> df = result.unwrap()
+        >>> df["age"].dtype.name.startswith("int")
+        True
+        >>> df["score"].dtype.name.startswith("float")
+        True
+        
+        Functional composition:
+        
+        >>> from autoframe.utils.functional import pipe, transform_documents
+        >>> process = pipe(
+        ...     transform_documents(lambda d: {**d, "processed": True}),
+        ...     lambda docs: to_dataframe(docs).map(apply_schema({"age": "int"})).unwrap()
+        ... )
     """
     def apply_to_df(df: DataFrameType) -> DataFrameType:
         if isinstance(df, pd.DataFrame):
@@ -99,7 +146,10 @@ def transform_documents(
     Examples:
         >>> add_timestamp = lambda doc: {**doc, "processed_at": "2024-01-01"}
         >>> transform = transform_documents(add_timestamp)
-        >>> result = fetch_docs().map(transform).and_then(to_dataframe)
+        >>> docs = [{"name": "Alice"}, {"name": "Bob"}] 
+        >>> transformed_docs = transform(docs)
+        >>> transformed_docs[0]["processed_at"]
+        '2024-01-01'
     """
     return lambda docs: [transform_fn(doc) for doc in docs]
 
@@ -116,8 +166,13 @@ def filter_documents(
         Function that filters document list
         
     Examples:
+        >>> docs = [{"name": "Alice", "active": True}, {"name": "Bob", "active": False}]
         >>> active_only = filter_documents(lambda doc: doc.get("active", True))
-        >>> result = fetch_docs().map(active_only).and_then(to_dataframe)
+        >>> filtered_docs = active_only(docs)
+        >>> len(filtered_docs)
+        1
+        >>> filtered_docs[0]["name"]
+        'Alice'
     """
     return lambda docs: [doc for doc in docs if predicate(doc)]
 
@@ -133,7 +188,11 @@ def validate_columns(required_cols: List[str]) -> Callable[[DataFrameResult], Da
         
     Examples:
         >>> validate = validate_columns(["name", "age"])
-        >>> result = to_dataframe(docs).then(validate)
+        >>> docs = [{"name": "Alice", "age": 30}]
+        >>> df_result = to_dataframe(docs)
+        >>> validated_result = validate(df_result)
+        >>> validated_result.is_ok()
+        True
     """
     def validate_df(df_result: DataFrameResult) -> DataFrameResult:
         return df_result.then(lambda df: _check_columns(df, required_cols))
@@ -152,27 +211,59 @@ def limit_documents(count: int) -> Callable[[DocumentList], DocumentList]:
         
     Examples:
         >>> limit_100 = limit_documents(100)
-        >>> result = fetch_docs().map(limit_100).and_then(to_dataframe)
+        >>> docs = [{"id": i} for i in range(200)]
+        >>> limited_docs = limit_100(docs)
+        >>> len(limited_docs)
+        100
     """
     return lambda docs: docs[:count]
 
 
 def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
-    """Compose functions in a pipeline.
+    """Compose functions in a pipeline - the heart of functional composition.
+    
+    This function allows you to chain multiple transformations together in a 
+    readable, left-to-right manner, following functional programming principles.
     
     Args:
-        *functions: Functions to compose
+        *functions: Functions to compose, applied left-to-right
         
     Returns:
-        Composed function
+        Composed function that applies all transformations in sequence
         
     Examples:
+        Document processing pipeline:
+        
+        >>> docs = [
+        ...     {"name": "Alice", "age": 30, "active": True},
+        ...     {"name": "Bob", "age": 17, "active": True}, 
+        ...     {"name": "Charlie", "age": 25, "active": False}
+        ... ]
         >>> process = pipe(
         ...     filter_documents(lambda d: d["active"]),
+        ...     filter_documents(lambda d: d["age"] >= 18),
         ...     transform_documents(lambda d: {**d, "processed": True}),
-        ...     limit_documents(1000)
+        ...     limit_documents(10)
         ... )
-        >>> result = fetch_docs().map(process).and_then(to_dataframe)
+        >>> result_docs = process(docs)
+        >>> len(result_docs)
+        1
+        >>> result_docs[0]["name"]
+        'Alice'
+        >>> result_docs[0]["processed"]
+        True
+        
+        With dataframe conversion:
+        
+        >>> full_pipeline = pipe(
+        ...     filter_documents(lambda d: d["active"]),
+        ...     transform_documents(lambda d: {**d, "category": "user"})
+        ... )
+        >>> processed_docs = full_pipeline(docs)
+        >>> df_result = to_dataframe(processed_docs)
+        >>> df = df_result.unwrap()
+        >>> "category" in df.columns
+        True
     """
     def composed(value: T) -> T:
         for fn in functions:
