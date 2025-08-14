@@ -11,31 +11,25 @@ from pathlib import Path
 from loguru import logger
 from logerr.utils import execute
 
-from autoframe.config import get_config
-
-
 def setup_logging(
-    level: Optional[str] = None,
+    level: str = "INFO",
     log_file: Optional[Path] = None,
-    enable_performance_logging: Optional[bool] = None,
-    log_query_details: Optional[bool] = None
+    enable_performance_logging: bool = False,
+    log_query_details: bool = True
 ) -> None:
     """Set up logging for autoframe.
     
-    This function configures loguru and logerr integration based on
-    autoframe configuration settings.
+    This function configures loguru and logerr integration with explicit parameters
+    instead of using configuration files.
     
     Args:
-        level: Log level override
+        level: Log level (default: "INFO")
         log_file: Optional log file path
         enable_performance_logging: Enable performance timing logs
         log_query_details: Enable detailed query logging
     """
-    config = get_config()
-    logging_config = config.get_logging_config()
-    
-    # Determine log level
-    log_level = level or logging_config.get("level", "INFO")
+    # Use explicit parameter
+    log_level = level
     
     # Remove default handler and add configured handler
     logger.remove()
@@ -88,6 +82,7 @@ def log_dataframe_operation(
     source_type: str,
     document_count: int,
     execution_time: Optional[float] = None,
+    enable_performance_logging: bool = False,
     **kwargs: Any
 ) -> None:
     """Log dataframe operations with consistent formatting.
@@ -97,12 +92,10 @@ def log_dataframe_operation(
         source_type: Data source type (e.g., "mongodb", "postgres")
         document_count: Number of documents processed
         execution_time: Optional execution time in seconds
+        enable_performance_logging: Whether to log performance details
         **kwargs: Additional context to log
     """
-    config = get_config()
-    logging_config = config.get_logging_config()
-    
-    if not logging_config.get("enable_performance_logging", False):
+    if not enable_performance_logging:
         return
     
     log_context = {
@@ -187,6 +180,7 @@ def log_query_execution(
     query: Dict[str, Any],
     result_count: int,
     execution_time: Optional[float] = None,
+    log_query_details: bool = True,
     **kwargs: Any
 ) -> None:
     """Log query execution details.
@@ -197,12 +191,10 @@ def log_query_execution(
         query: Query dictionary (will be sanitized)
         result_count: Number of results returned
         execution_time: Execution time in seconds
+        log_query_details: Whether to log query details
         **kwargs: Additional context
     """
-    config = get_config()
-    logging_config = config.get_logging_config()
-    
-    if not logging_config.get("log_query_details", False):
+    if not log_query_details:
         return
     
     # Sanitize query for logging (remove potential sensitive data)
