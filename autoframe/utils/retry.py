@@ -18,7 +18,7 @@ from tenacity import (
 )
 from loguru import logger
 
-from logerr import Result
+from logerr import Result, Ok, Err
 from logerr.utils import execute
 from autoframe.types import DataSourceError, ConfigurationError
 
@@ -153,11 +153,12 @@ def retry_with_backoff(
             for attempt in range(max_attempts):
                 result = execute(func)
                 
-                if result.is_ok():
-                    return result
-                
-                # Result is an error
-                last_result = result
+                match result:
+                    case Ok(_):
+                        return result
+                    case Err(_):
+                        # Result is an error
+                        last_result = result
                 
                 if attempt < max_attempts - 1:  # Don't sleep on the last attempt
                     logger.warning(
@@ -207,11 +208,11 @@ def retry_on_condition(
             for attempt in range(max_attempts):
                 result = execute(func)
                 
-                if result.is_ok():
-                    return result
-                
-                exception = result.unwrap_err()
-                last_exception = exception
+                match result:
+                    case Ok(_):
+                        return result
+                    case Err(exception):
+                        last_exception = exception
                 
                 if attempt < max_attempts - 1 and condition(exception):
                     logger.warning(
@@ -293,10 +294,11 @@ def retry_result(
     for attempt in range(max_attempts):
         result = result_func()
         
-        if result.is_ok():
-            return result
-        
-        last_result = result
+        match result:
+            case Ok(_):
+                return result
+            case Err(_):
+                last_result = result
         
         if attempt < max_attempts - 1:
             logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s...")
@@ -332,9 +334,10 @@ def batch_with_retry(
             max_attempts=max_attempts
         )
         
-        if batch_result.is_err():
-            return batch_result
-        
-        results.append(batch_result.unwrap())
+        match batch_result:
+            case Err(_):
+                return batch_result
+            case Ok(batch_data):
+                results.append(batch_data)
     
     return execute(lambda: results)

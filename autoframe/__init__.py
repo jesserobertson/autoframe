@@ -9,27 +9,17 @@ __author__ = "Jesse Robertson"
 __email__ = "jess.robertson@niwa.co.nz"
 
 # Re-export key components for convenient access
-# Functional, composable API
-from autoframe.pipeline import create_pipeline, fetch_and_process, quick_dataframe
+# Simplified functional, composable API
+from autoframe.pipeline import create_pipeline
 from autoframe import mongodb
-from autoframe.sources.simple import fetch, fetch_with_retry, create_fetcher
 from autoframe.utils.functional import to_dataframe, apply_schema, pipe
 from autoframe.utils.retry import with_database_retry, with_network_retry, retry_with_backoff
-from autoframe.quality import (
-    log_result_failure, 
-    log_document_completeness,
-    log_dataframe_creation_stats,
-    track_pipeline_operation,
-    with_document_quality_logging
-)
+from autoframe.quality import log_result_failure, log_conversion_operation
 
 __all__ = [
     # Core functional API
     "mongodb",
     "create_pipeline", 
-    "fetch_and_process",
-    "quick_dataframe",
-    "fetch",
     "to_dataframe",
     "apply_schema", 
     "pipe",
@@ -37,11 +27,8 @@ __all__ = [
     "with_database_retry",
     "with_network_retry", 
     "retry_with_backoff",
-    # Quality logging
+    # Transparent quality logging
     "log_result_failure",
-    "log_document_completeness", 
-    "log_dataframe_creation_stats",
-    "track_pipeline_operation",
-    "with_document_quality_logging",
+    "log_conversion_operation",
     "__version__",
 ]
