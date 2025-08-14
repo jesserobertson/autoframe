@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        type: string
+
+jobs:
+  test-before-release:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_DATABASE: autoframe_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        cache: true
+
+    - name: Install dependencies
+      run: pixi install
+
+    - name: Run all quality checks
+      run: pixi run check-all
+
+    - name: Wait for MongoDB and setup test data
+      run: |
+        until mongosh --eval "print(\"waited for connection\")" > /dev/null 2>&1; do
+          sleep 2
+        done
+        mongosh autoframe_test --eval "
+          db.users.insertMany([
+            {_id: 'user1', name: 'Alice', age: 30, active: true, email: 'alice@example.com'},
+            {_id: 'user2', name: 'Bob', age: 25, active: true, email: 'bob@example.com'}
+          ]);
+        "
+
+    - name: Run comprehensive tests
+      env:
+        MONGODB_URI: mongodb://localhost:27017
+      run: pixi run test-all
+
+  build-and-publish:
+    needs: test-before-release
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write  # For trusted publishing to PyPI
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        cache: true
+
+    - name: Install dependencies
+      run: pixi install
+
+    - name: Build package
+      run: pixi run build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        # Uses trusted publishing - no API key needed
+        # Configure at https://pypi.org/manage/account/publishing/
+        verbose: true

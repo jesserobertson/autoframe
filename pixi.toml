@@ -49,7 +49,7 @@ logerr = { git = "https://github.com/jesserobertson/logerr.git" }
 
 [tasks]
 # Testing
-test = "pytest tests/unit/ --cov=autoframe --cov-report=term"
+test = "pytest tests/unit/ --cov=autoframe --cov-report=term --cov-report=xml"
 test-integration = "pytest tests/integration/ -v"
 test-all = "pytest tests/ --doctest-modules autoframe"
 test-fast = "pytest tests/unit/ -x --ff"

@@ -1,7 +1,9 @@
 # AutoFrame
 
+[![CI](https://github.com/jesserobertson/autoframe/workflows/CI/badge.svg)](https://github.com/jesserobertson/autoframe/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/jesserobertson/autoframe/branch/main/graph/badge.svg)](https://codecov.io/gh/jesserobertson/autoframe)
 
 AutoFrame is a Python library for functional dataframe creation from MongoDB with integrated quality logging. It leverages functional programming patterns with Result/Option types from [logerr](https://github.com/jesserobertson/logerr) for robust, composable data processing pipelines.
 

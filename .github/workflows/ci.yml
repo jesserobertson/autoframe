@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12"]
+        
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_DATABASE: autoframe_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        cache: true
+
+    - name: Install dependencies
+      run: pixi install
+
+    - name: Run unit tests
+      run: pixi run test
+
+    - name: Wait for MongoDB to be ready
+      run: |
+        echo "Waiting for MongoDB to be ready..."
+        until mongosh --eval "print(\"waited for connection\")" > /dev/null 2>&1; do
+          echo "Waiting for MongoDB connection..."
+          sleep 2
+        done
+        echo "MongoDB is ready!"
+
+    - name: Set up MongoDB test data
+      run: |
+        echo "Setting up test data..."
+        mongosh autoframe_test --eval "
+          db.users.insertMany([
+            {_id: 'user1', name: 'Alice', age: 30, active: true, email: 'alice@example.com'},
+            {_id: 'user2', name: 'Bob', age: 25, active: true, email: 'bob@example.com'},
+            {_id: 'user3', name: 'Charlie', age: 35, active: false, email: 'charlie@example.com'},
+            {_id: 'user4', name: 'Diana', age: 28, active: true, email: 'diana@example.com'},
+            {_id: 'user5', name: 'Eve', age: 22, active: false, email: 'eve@example.com'}
+          ]);
+          db.orders.insertMany([
+            {_id: 'order1', user_id: 'user1', total: 100.50, status: 'completed', items: 3},
+            {_id: 'order2', user_id: 'user2', total: 75.25, status: 'pending', items: 2},
+            {_id: 'order3', user_id: 'user1', total: 200.00, status: 'completed', items: 5},
+            {_id: 'order4', user_id: 'user3', total: 50.75, status: 'cancelled', items: 1},
+            {_id: 'order5', user_id: 'user4', total: 150.00, status: 'completed', items: 4}
+          ]);
+          print('Test data inserted successfully');
+        "
+
+    - name: Run integration tests
+      env:
+        MONGODB_URI: mongodb://localhost:27017
+      run: pixi run test-integration
+
+    - name: Run all tests (including doctests)
+      env:
+        MONGODB_URI: mongodb://localhost:27017
+      run: pixi run test-all
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        cache: true
+
+    - name: Install dependencies
+      run: pixi install
+
+    - name: Run type checking
+      run: pixi run typecheck
+
+    - name: Run code quality checks
+      run: pixi run quality
+
+    - name: Check formatting
+      run: pixi run format --check
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        cache: true
+
+    - name: Install dependencies
+      run: pixi install
+
+    - name: Build documentation
+      run: pixi run docs-build
+
+    - name: Upload documentation artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: site/
