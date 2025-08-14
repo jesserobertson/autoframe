@@ -195,3 +195,6 @@ data/
 *.db
 *.sqlite
 test_output/
+
+# Docker test data (keep initialization script but ignore volumes)
+**/mongodb_data/

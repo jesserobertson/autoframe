@@ -137,8 +137,13 @@ def log_dataframe_creation_stats(df_result: DataFrameResult, source_info: Dict[s
             "rows": len(df),
             "columns": len(df.columns),
             "column_names": list(df.columns),
-            "memory_usage_mb": round(df.memory_usage(deep=True).sum() / 1024 / 1024, 2)
         }
+        
+        # Add memory usage info if available (pandas has it, polars doesn't)
+        if hasattr(df, 'memory_usage'):
+            stats["memory_usage_mb"] = round(df.memory_usage(deep=True).sum() / 1024 / 1024, 2)
+        else:
+            stats["memory_usage_mb"] = "unknown"
         
         # Check for common data quality indicators
         if hasattr(df, 'isnull'):  # pandas

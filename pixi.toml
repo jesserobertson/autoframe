@@ -49,9 +49,10 @@ logerr = { git = "https://github.com/jesserobertson/logerr.git" }
 
 [tasks]
 # Testing
-test = "pytest tests/ --doctest-modules autoframe --cov=autoframe --cov-report=term"
+test = "pytest tests/unit/ --cov=autoframe --cov-report=term"
+test-integration = "pytest tests/integration/ -v"
 test-all = "pytest tests/ --doctest-modules autoframe"
-test-fast = "pytest tests/ -x --ff"
+test-fast = "pytest tests/unit/ -x --ff"
 
 # Code quality
 typecheck = "mypy autoframe"
@@ -74,3 +75,9 @@ docs-build = "mkdocs build"
 # Development helpers
 install-pre-commit = "pre-commit install"
 run-pre-commit = "pre-commit run --all-files"
+
+# Test database management
+test-db-start = "./scripts/test-db.sh start"
+test-db-stop = "./scripts/test-db.sh stop"
+test-db-reset = "./scripts/test-db.sh reset"
+test-db-status = "./scripts/test-db.sh status"
