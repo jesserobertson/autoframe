@@ -2,6 +2,7 @@
 
 import pytest
 import time
+from datetime import timedelta
 from unittest.mock import Mock, patch
 from hypothesis import given, strategies as st, settings, HealthCheck
 
@@ -180,7 +181,7 @@ class TestRetryPropertiesHypothesis:
         base_delay=st.floats(min_value=0.001, max_value=0.1),
         success_after=st.integers(min_value=1, max_value=5)
     )
-    @settings(max_examples=10, suppress_health_check=[HealthCheck.too_slow])
+    @settings(max_examples=10, suppress_health_check=[HealthCheck.too_slow], deadline=None)
     def test_retry_backoff_properties(self, max_attempts, base_delay, success_after):
         """Property test: retry should succeed if success_after <= max_attempts."""
         call_count = 0

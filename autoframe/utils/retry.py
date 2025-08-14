@@ -147,26 +147,30 @@ def retry_with_backoff(
     def decorator(func: Callable[[], T]) -> Callable[[], Result[T, Any]]:
         @wraps(func)
         def wrapper() -> Result[T, Any]:
-            last_exception = None
+            last_result = None
             delay = base_delay
             
             for attempt in range(max_attempts):
-                try:
-                    return execute(func)
-                except Exception as e:
-                    last_exception = e
-                    
-                    if attempt < max_attempts - 1:  # Don't sleep on the last attempt
-                        logger.warning(
-                            f"Attempt {attempt + 1}/{max_attempts} failed: {str(e)}. "
-                            f"Retrying in {delay}s..."
-                        )
-                        time.sleep(delay)
-                        delay = min(delay * backoff_factor, max_delay)
-                    else:
-                        logger.error(f"All {max_attempts} attempts failed. Last error: {str(e)}")
+                result = execute(func)
+                
+                if result.is_ok():
+                    return result
+                
+                # Result is an error
+                last_result = result
+                
+                if attempt < max_attempts - 1:  # Don't sleep on the last attempt
+                    logger.warning(
+                        f"Attempt {attempt + 1}/{max_attempts} failed: {result.unwrap_err()}. "
+                        f"Retrying in {delay}s..."
+                    )
+                    time.sleep(delay)
+                    delay = min(delay * backoff_factor, max_delay)
+                else:
+                    logger.error(f"All {max_attempts} attempts failed. Last error: {result.unwrap_err()}")
             
-            return execute(lambda: func() if last_exception is None else (_ for _ in ()).throw(last_exception))
+            # Return the last failed result
+            return last_result
         
         return wrapper
     return decorator
