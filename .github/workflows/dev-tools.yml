@@ -98,6 +98,19 @@ jobs:
 
   coverage-report:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_DATABASE: autoframe_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s  
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -110,18 +123,34 @@ jobs:
     - name: Install dependencies
       run: pixi install
 
-    - name: Run tests with coverage
+    - name: Run unit tests with coverage
       run: pixi run test
 
-    - name: Generate coverage report
+    - name: Setup MongoDB test data for integration coverage
       run: |
-        pixi run python -m coverage xml
+        until mongosh --eval "print(\"connection successful\")" > /dev/null 2>&1; do
+          sleep 2
+        done
+        mongosh autoframe_test --eval "
+          db.users.insertMany([
+            {_id: 'user1', name: 'Alice', age: 30, active: true},
+            {_id: 'user2', name: 'Bob', age: 25, active: true}
+          ]);
+        "
+
+    - name: Run integration tests with coverage
+      env:
+        MONGODB_URI: mongodb://localhost:27017
+      run: pixi run test-integration
+
+    - name: Generate combined coverage report  
+      run: pixi run test-coverage
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+        flags: comprehensive
+        name: codecov-comprehensive
         fail_ci_if_error: false

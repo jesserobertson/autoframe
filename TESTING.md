@@ -39,6 +39,24 @@ pixi run test
 pixi run test-fast
 ```
 
+### Coverage Reporting
+```bash
+# Run unit tests with coverage (includes HTML and XML reports)
+pixi run test
+
+# Run integration tests with coverage (appends to existing coverage)
+pixi run test-integration
+
+# Generate coverage report in terminal
+pixi run test-coverage
+
+# Generate HTML coverage report
+pixi run test-coverage-html
+
+# Combined unit + integration tests with coverage
+pixi run test-with-integration
+```
+
 ### Integration Tests Only
 ```bash
 # Start test database first (requires Docker)
@@ -145,6 +163,64 @@ The test setup is designed for CI/CD pipelines:
 - Unit tests: `test_<function_name>_<scenario>`
 - Integration tests: `test_<feature>_<scenario>_integration`
 - Mocked tests: `test_<function_name>_<scenario>_mocked`
+
+## Coverage Analysis
+
+### Current Coverage Status
+The project maintains **44.30%** overall code coverage with:
+- **Unit tests**: Focus on functional API and mocked operations
+- **Integration tests**: Real MongoDB operations and DataFrame conversions
+- **Combined coverage**: Unit + integration tests together
+
+### Coverage Breakdown by Module
+- `autoframe/mongodb.py`: **100%** - Full MongoDB interface coverage
+- `autoframe/sources/simple.py`: **94%** - MongoDB operations well tested
+- `autoframe/utils/functional.py`: **88%** - Functional utilities covered
+- `autoframe/types.py`: **94%** - Type definitions covered
+- Lower coverage areas: `config.py` (45%), `logging.py` (21%), `retry.py` (22%)
+
+### Viewing Coverage Reports
+
+**Terminal Report:**
+```bash
+pixi run test-coverage
+```
+
+**HTML Report** (detailed, interactive):
+```bash
+pixi run test-coverage-html
+open htmlcov/index.html  # View in browser
+```
+
+**XML Report** (for CI/Codecov):
+- Generated automatically during test runs
+- Located at `coverage.xml`
+- Used by GitHub Actions for Codecov uploads
+
+### Coverage Configuration
+Coverage settings in `pyproject.toml`:
+- **Source tracking**: Only `autoframe/` package
+- **Branch coverage**: Enabled for conditional logic
+- **Exclusions**: Test files, generated files, debug code
+- **Reports**: Terminal, HTML, and XML formats
+
+### Improving Coverage
+To increase coverage in low-coverage modules:
+
+1. **Config module** (`autoframe/config.py` - 45%):
+   - Add tests for configuration validation
+   - Test error conditions and edge cases
+   - Mock file system operations
+
+2. **Logging module** (`autoframe/logging.py` - 21%):
+   - Test logging decorators and context managers
+   - Verify log message formatting
+   - Test different log levels and outputs
+
+3. **Retry module** (`autoframe/utils/retry.py` - 22%):
+   - Test retry logic with different failure scenarios
+   - Test timeout and backoff behaviors
+   - Mock network and database failures
 
 ## Troubleshooting
 

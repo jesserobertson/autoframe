@@ -41,7 +41,7 @@ jobs:
     - name: Install dependencies
       run: pixi install
 
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: pixi run test
 
     - name: Wait for MongoDB to be ready
@@ -74,10 +74,22 @@ jobs:
           print('Test data inserted successfully');
         "
 
-    - name: Run integration tests
+    - name: Run integration tests with coverage
       env:
         MONGODB_URI: mongodb://localhost:27017
       run: pixi run test-integration
+
+    - name: Generate combined coverage report
+      run: pixi run test-coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests,integration
+        name: codecov-umbrella
+        fail_ci_if_error: false
 
     - name: Run all tests (including doctests)
       env:
