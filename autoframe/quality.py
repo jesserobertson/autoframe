@@ -31,9 +31,15 @@ def log_result_failure(result: Result[T, E], operation: str, context: Optional[D
         The original Result unchanged (for chaining)
         
     Examples:
-        >>> result = fetch_documents("mongodb://localhost", "db", "coll")
+        >>> from autoframe.sources.simple import fetch
+        >>> from logerr import Err
+        >>> from autoframe.types import DataSourceError
+        >>> 
+        >>> # Example with a failing result
+        >>> result = Err(DataSourceError("Connection failed"))
         >>> logged_result = log_result_failure(result, "document_fetch", {"collection": "users"})
-        >>> # If result is Err, logs the error details
+        >>> logged_result.is_err()
+        True
     """
     if result.is_err():
         error = result.unwrap_err()
@@ -345,12 +351,13 @@ def with_quality_logging(func: Callable[..., Result[T, E]], operation: str,
         Wrapped function with logging
         
     Examples:
+        >>> from autoframe.sources.simple import fetch
         >>> logged_fetch = with_quality_logging(
-        ...     fetch_documents, 
+        ...     fetch, 
         ...     "document_fetch",
         ...     {"source": "mongodb"}
         ... )
-        >>> result = logged_fetch("mongodb://localhost", "db", "coll")
+        >>> # logged_fetch can now be called like: logged_fetch("mongodb://localhost", "db", "coll")
     """
     @wraps(func)
     def wrapper(*args, **kwargs):

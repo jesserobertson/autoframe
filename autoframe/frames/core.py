@@ -251,16 +251,16 @@ def create_dataframe(
         Result[DataFrame, DataFrameCreationError]: Created dataframe or error
         
     Examples:
-        >>> from autoframe import create_dataframe
-        >>> from autoframe.sources.mongodb import MongoDBAdapter
-        >>> 
-        >>> # From adapter
-        >>> adapter = MongoDBAdapter("mongodb://localhost:27017")
-        >>> result = create_dataframe(adapter.query("mydb", "users"))
+        >>> from autoframe.frames.core import create_dataframe
         >>> 
         >>> # From documents
         >>> docs = [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
         >>> result = create_dataframe(docs)
+        >>> result.is_ok()
+        True
+        >>> df = result.unwrap()
+        >>> len(df)
+        2
     """
     if isinstance(source, QueryBuilder):
         return DataFrameFactory.from_query_builder(source, backend, schema, transform)
