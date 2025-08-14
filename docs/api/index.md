@@ -26,6 +26,13 @@ Simple functions for data fetching:
 - `connect_mongodb()` - MongoDB connection handling
 - Connection utilities and retry logic
 
+### [Quality Logging](quality.md)
+Simple quality logging for Result failures and data completeness:
+
+- `log_result_failure()` - Log when Results contain errors
+- `log_document_completeness()` - Track missing fields in documents
+- Pipeline operation tracking and automatic logging
+
 ### [Types](types.md)
 Type definitions and error classes:
 

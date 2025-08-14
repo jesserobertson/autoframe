@@ -14,6 +14,13 @@ from autoframe.pipeline import mongodb_to_dataframe, create_pipeline, fetch_and_
 from autoframe.sources.simple import fetch_documents, fetch_documents_with_retry, create_fetcher
 from autoframe.utils.functional import to_dataframe, apply_schema, pipe
 from autoframe.utils.retry import with_database_retry, with_network_retry, retry_with_backoff
+from autoframe.quality import (
+    log_result_failure, 
+    log_document_completeness,
+    log_dataframe_creation_stats,
+    track_pipeline_operation,
+    with_document_quality_logging
+)
 
 __all__ = [
     # Core functional API
@@ -29,5 +36,11 @@ __all__ = [
     "with_database_retry",
     "with_network_retry", 
     "retry_with_backoff",
+    # Quality logging
+    "log_result_failure",
+    "log_document_completeness", 
+    "log_dataframe_creation_stats",
+    "track_pipeline_operation",
+    "with_document_quality_logging",
     "__version__",
 ]

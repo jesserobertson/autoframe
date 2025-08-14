@@ -88,6 +88,7 @@ nav:
     - Functional Utilities: api/functional.md
     - Pipeline: api/pipeline.md
     - Data Sources: api/sources.md
+    - Quality Logging: api/quality.md
     - Types: api/types.md
 
 extra:

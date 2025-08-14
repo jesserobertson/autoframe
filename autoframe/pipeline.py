@@ -10,6 +10,7 @@ from functools import partial
 from logerr import Result
 from autoframe.types import DataFrameResult, DocumentList, DataSourceResult
 from autoframe.sources.simple import fetch_documents, fetch_documents_with_retry, create_fetcher
+from autoframe.quality import log_result_failure, log_conversion_operation
 from autoframe.utils.functional import (
     to_dataframe,
     apply_schema, 
@@ -78,12 +79,30 @@ def mongodb_to_dataframe(
         >>> # if result.is_err():
         >>> #     print(f"Connection failed: {result.unwrap_err()}")
     """
+    # Fetch documents with quality logging
     result = fetch_documents(connection_string, database, collection, query, limit)
+    logged_result = log_result_failure(result, "mongodb_fetch", {
+        "database": database,
+        "collection": collection, 
+        "query": query,
+        "limit": limit
+    })
     
-    df_result = result.then(partial(to_dataframe, backend=backend))
+    # Convert to dataframe with logging
+    df_result = logged_result.then(partial(to_dataframe, backend=backend))
+    df_result = log_conversion_operation(
+        df_result, 
+        backend, 
+        len(logged_result.unwrap_or([]))
+    )
     
+    # Apply schema if provided
     if schema:
         df_result = df_result.map(apply_schema(schema))
+        df_result = log_result_failure(df_result, "schema_application", {
+            "schema": schema,
+            "backend": backend
+        })
     
     return df_result
 
@@ -158,31 +177,59 @@ class DataPipeline:
         return self
     
     def execute(self) -> DataFrameResult:
-        """Execute the complete pipeline.
+        """Execute the complete pipeline with quality logging.
         
         Returns:
             Result[DataFrame, Error]
         """
-        # Fetch documents
+        # Fetch documents with logging
         docs_result = self.fetch_fn()
+        docs_result = log_result_failure(docs_result, "pipeline_fetch", {
+            "transforms": len(self.transforms),
+            "backend": self.target_backend,
+            "has_schema": bool(self.target_schema)
+        })
         
-        # Apply document transforms
+        # Apply document transforms with logging
         if self.transforms:
             combined_transform = pipe(*self.transforms)
+            original_count = len(docs_result.unwrap_or([]))
             docs_result = docs_result.map(combined_transform)
+            new_count = len(docs_result.unwrap_or([]))
+            
+            if original_count != new_count:
+                log_result_failure(docs_result, "pipeline_transforms", {
+                    "original_count": original_count,
+                    "new_count": new_count,
+                    "change": new_count - original_count,
+                    "transform_count": len(self.transforms)
+                })
         
-        # Convert to dataframe
+        # Convert to dataframe with logging
         df_result = docs_result.then(
             partial(to_dataframe, backend=self.target_backend)
+        )
+        df_result = log_conversion_operation(
+            df_result,
+            self.target_backend,
+            len(docs_result.unwrap_or([]))
         )
         
         # Apply schema if specified
         if self.target_schema:
             df_result = df_result.map(apply_schema(self.target_schema))
+            df_result = log_result_failure(df_result, "pipeline_schema", {
+                "schema": self.target_schema,
+                "backend": self.target_backend
+            })
         
-        # Apply dataframe transforms
-        for df_transform in self.df_transforms:
+        # Apply dataframe transforms with logging
+        for i, df_transform in enumerate(self.df_transforms):
             df_result = df_transform(df_result)
+            df_result = log_result_failure(df_result, f"pipeline_df_transform_{i}", {
+                "transform_index": i,
+                "total_transforms": len(self.df_transforms)
+            })
         
         return df_result
 
