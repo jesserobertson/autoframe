@@ -1,29 +1,7 @@
 # Data Sources API
 
-This section documents the data source interfaces and implementations.
+This section documents the data source functionality. 
 
-## Simple Functions
+As part of the API simplification, all MongoDB functionality has been consolidated into `autoframe.mongodb`. The sources module is kept for future data source extensions but currently contains no active functionality.
 
-::: autoframe.sources.simple.connect
-
-::: autoframe.sources.simple.fetch
-
-::: autoframe.sources.simple.count
-
-::: autoframe.sources.simple.create_fetcher
-
-::: autoframe.sources.simple.fetch_with_retry
-
-::: autoframe.sources.simple.fetch_in_batches
-
-## MongoDB Adapter
-
-::: autoframe.sources.mongodb.MongoDBAdapter
-
-::: autoframe.sources.mongodb.MongoDBQueryBuilder
-
-## Base Classes
-
-::: autoframe.sources.base.DataSourceAdapter
-
-::: autoframe.sources.base.QueryBuilder
+For MongoDB operations, see the main API documentation.
