@@ -1,0 +1,18 @@
+---
+# Database indexes configuration
+indexes:
+  users:
+    - fields: { "active": 1 }
+    - fields: { "department": 1 }
+  
+  orders:
+    - fields: { "user_id": 1 }
+    - fields: { "status": 1 }
+    - fields: { "order_date": 1 }
+  
+  products:
+    - fields: { "category": 1 }
+    - fields: { "in_stock": 1 }
+  
+  analytics:
+    - fields: { "date": 1 }

@@ -7,7 +7,7 @@ import pytest
 import os
 from typing import Dict, Any, List
 import pymongo
-from autoframe.mongodb import fetch, connect_mongodb, count, fetch_in_batches
+from autoframe.mongodb import fetch, connect, count, fetch_in_batches
 import autoframe.mongodb as mongodb
 from autoframe.utils.functional import to_dataframe
 
@@ -78,7 +78,7 @@ class TestMongoDBConnection:
     
     def test_connect_mongodb_success(self, mongodb_uri, mongodb_client):
         """Test successful MongoDB connection."""
-        result = connect_mongodb(mongodb_uri)
+        result = connect(mongodb_uri)
         
         assert result.is_ok()
         client = result.unwrap()
@@ -87,7 +87,7 @@ class TestMongoDBConnection:
     
     def test_connect_mongodb_failure(self):
         """Test failed MongoDB connection."""
-        result = connect_mongodb("mongodb://invalid-host:27017")
+        result = connect("mongodb://invalid-host:27017")
         
         assert result.is_err()
         error = result.unwrap_err()

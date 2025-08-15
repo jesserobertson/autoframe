@@ -1,0 +1,37 @@
+---
+# Test analytics collection data
+analytics:
+  - _id: "analytics1"
+    date: "2024-07-01T00:00:00Z"
+    page_views: 1250
+    unique_visitors: 350
+    bounce_rate: 0.45
+    conversion_rate: 0.023
+
+  - _id: "analytics2"
+    date: "2024-07-02T00:00:00Z"
+    page_views: 1180
+    unique_visitors: 320
+    bounce_rate: 0.48
+    conversion_rate: 0.019
+
+  - _id: "analytics3"
+    date: "2024-07-03T00:00:00Z"
+    page_views: 1420
+    unique_visitors: 410
+    bounce_rate: 0.42
+    conversion_rate: 0.031
+
+  - _id: "analytics4"
+    date: "2024-07-04T00:00:00Z"
+    page_views: 980
+    unique_visitors: 280
+    bounce_rate: 0.52
+    conversion_rate: 0.015
+
+  - _id: "analytics5"
+    date: "2024-07-05T00:00:00Z"
+    page_views: 1350
+    unique_visitors: 385
+    bounce_rate: 0.46
+    conversion_rate: 0.027

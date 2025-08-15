@@ -1,0 +1,42 @@
+---
+# Test products collection data
+products:
+  - _id: "prod1"
+    name: "Laptop Stand"
+    category: "Accessories"
+    price: 39.99
+    in_stock: true
+    stock_quantity: 150
+    supplier: "TechCorp"
+
+  - _id: "prod2"
+    name: "Wireless Mouse"
+    category: "Peripherals"
+    price: 29.99
+    in_stock: true
+    stock_quantity: 200
+    supplier: "MouseCorp"
+
+  - _id: "prod3"
+    name: "Monitor 27inch"
+    category: "Displays"
+    price: 199.99
+    in_stock: false
+    stock_quantity: 0
+    supplier: "DisplayTech"
+
+  - _id: "prod4"
+    name: "Mechanical Keyboard"
+    category: "Peripherals"
+    price: 89.99
+    in_stock: true
+    stock_quantity: 75
+    supplier: "KeyCorp"
+
+  - _id: "prod5"
+    name: "USB Hub"
+    category: "Accessories"
+    price: 24.99
+    in_stock: true
+    stock_quantity: 300
+    supplier: "TechCorp"

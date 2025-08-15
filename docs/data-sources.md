@@ -1,93 +1,223 @@
 # Data Sources
 
-AutoFrame provides flexible interfaces for connecting to and querying various data sources. All data source operations use Result types for reliable error handling.
+AutoFrame provides modern Python 3.12+ interfaces for MongoDB integration with functional programming patterns, Result types, and pattern matching.
 
-## MongoDB
+## MongoDB (Modern Functional Style)
 
-MongoDB is the primary supported data source with comprehensive functionality.
+### Direct Operations (Recommended)
 
-### Simple Functions (Recommended)
-
-The functional approach uses simple functions without stateful connections:
+The modern functional approach uses pattern matching and direct operations:
 
 ```python
-from autoframe.sources.simple import (
-    connect_mongodb, 
-    fetch_documents, 
-    count_documents,
-    fetch_in_batches
-)
+import autoframe.mongodb as mongodb
+from logerr import Ok, Err
 
-# Basic connection and query
-client_result = connect_mongodb("mongodb://localhost:27017")
-docs_result = fetch_documents(
+# Modern Python 3.12+ style with pattern matching
+result = mongodb.to_dataframe(
     "mongodb://localhost:27017",
-    "ecommerce", 
-    "orders",
+    "ecommerce",
+    "orders", 
     query={"status": "completed"},
-    limit=1000
+    limit=1000,
+    schema={"amount": "float", "created_at": "datetime"}
 )
 
-if docs_result.is_ok():
-    documents = docs_result.unwrap()
-    print(f"Retrieved {len(documents)} orders")
+# Handle with pattern matching
+match result:
+    case Ok(df):
+        print(f"✅ Retrieved {len(df)} orders")
+        print(df.head())
+    case Err(error):
+        print(f"❌ Error: {error}")
 ```
 
 ### Connection Management
 
-#### Basic Connection
+#### Modern Connection API
 
 ```python
-from autoframe.sources.simple import connect_mongodb
+import autoframe.mongodb as mongodb
+from logerr import Ok, Err
 
 # Simple connection with automatic retry
-result = connect_mongodb("mongodb://localhost:27017")
+result = mongodb.connect("mongodb://localhost:27017")
 
-if result.is_ok():
-    client = result.unwrap()
-    # Use client...
-else:
-    error = result.unwrap_err()
-    print(f"Connection failed: {error}")
-```
-
-#### Connection Strings
-
-AutoFrame supports standard MongoDB connection strings:
-
-```python
-# Local connection
-connect_mongodb("mongodb://localhost:27017")
-
-# Remote with authentication
-connect_mongodb("mongodb://user:password@remote-server:27017/database")
-
-# Replica set
-connect_mongodb("mongodb://host1:27017,host2:27017/database?replicaSet=rs0")
-
-# With options
-connect_mongodb("mongodb://localhost:27017/db?maxPoolSize=50&connectTimeoutMS=5000")
+# Pattern matching for connection results
+match result:
+    case Ok(client):
+        print("✅ Connected successfully")
+        # Use client...
+    case Err(error):
+        print(f"❌ Connection failed: {error}")
 ```
 
 ### Document Fetching
 
-#### Basic Queries
+#### Fetch with Functional Composition
 
 ```python
-from autoframe.sources.simple import fetch_documents
+import autoframe.mongodb as mongodb
+from autoframe.utils.functional import pipe, filter, transform
 
-# Simple fetch
-docs = fetch_documents("mongodb://localhost:27017", "mydb", "users")
-
-# With query filter
-docs = fetch_documents(
+# Fetch documents and process functionally
+result = mongodb.fetch(
     "mongodb://localhost:27017",
-    "analytics", 
-    "events",
-    query={"event_type": "purchase", "amount": {"$gt": 100}},
+    "app", 
+    "users",
+    query={"active": True},
+    limit=5000
+)
+
+# Process with pipeline
+match result:
+    case Ok(documents):
+        # Define processing pipeline
+        process_users = pipe(
+            filter(lambda doc: doc.get("age", 0) >= 18),
+            transform(lambda doc: {**doc, "category": "adult_user"})
+        )
+        
+        processed = process_users(documents)
+        print(f"✨ Processed {len(processed)} adult users")
+    case Err(error):
+        print(f"⚠️ Fetch failed: {error}")
+```
+
+#### Direct DataFrame Creation
+
+```python
+import autoframe.mongodb as mongodb
+
+# Most common pattern - direct to DataFrame
+result = mongodb.to_dataframe(
+    "mongodb://localhost:27017",
+    "sales",
+    "transactions",
+    query={"date": {"$gte": "2025-01-01"}},
+    schema={
+        "amount": "float",
+        "date": "datetime", 
+        "customer_id": "string"
+    },
+    backend="pandas"  # or "polars"
+)
+
+match result:
+    case Ok(df):
+        print(f"📊 DataFrame created: {len(df)} rows, {len(df.columns)} columns")
+        print(df.dtypes)
+    case Err(error):
+        print(f"📉 DataFrame creation failed: {error}")
+```
+
+### Batch Processing
+
+#### Large Dataset Handling
+
+```python
+import autoframe.mongodb as mongodb
+
+# Handle large datasets with batching
+result = mongodb.fetch_in_batches(
+    "mongodb://localhost:27017",
+    "analytics",
+    "events", 
+    batch_size=10000,
+    query={"event_type": "purchase"}
+)
+
+match result:
+    case Ok(batches):
+        print(f"🔄 Retrieved {len(batches)} batches")
+        
+        # Process each batch
+        for i, batch in enumerate(batches):
+            print(f"Batch {i+1}: {len(batch)} documents")
+            # Process batch...
+            
+    case Err(error):
+        print(f"⚠️ Batch processing failed: {error}")
+```
+
+### Connection Strings
+
+AutoFrame supports standard MongoDB connection strings:
+
+```python
+import autoframe.mongodb as mongodb
+
+# Local connection
+mongodb.connect("mongodb://localhost:27017")
+
+# Remote with authentication  
+mongodb.connect("mongodb://user:password@remote-server:27017/database")
+
+# Replica set
+mongodb.connect("mongodb://host1:27017,host2:27017/database?replicaSet=rs0")
+
+# With options
+mongodb.connect("mongodb://localhost:27017/db?maxPoolSize=50&connectTimeoutMS=5000")
+```
+
+## Alternative Approaches (Fallback)
+
+### Traditional if/else Style
+
+```python
+import autoframe.mongodb as mongodb
+
+# Traditional error handling (if you prefer)
+result = mongodb.fetch(
+    "mongodb://localhost:27017",
+    "mydb",
+    "users",
+    query={"active": True},
     limit=500
 )
+
+# Traditional if/else handling
+if result.is_ok():
+    documents = result.unwrap()
+    print(f"Retrieved {len(documents)} documents")
+else:
+    error = result.unwrap_err()
+    print(f"Error: {error}")
 ```
+
+### Imperative Style Connection
+
+```python
+import autoframe.mongodb as mongodb
+
+# Direct client management (if needed)
+client_result = mongodb.connect("mongodb://localhost:27017")
+
+if client_result.is_ok():
+    client = client_result.unwrap()
+    # Use client directly for complex operations
+    db = client["mydb"]
+    collection = db["users"]
+    # ... manual operations
+    client.close()
+```
+
+## Best Practices
+
+### Modern Functional Patterns (Recommended)
+
+1. **Use pattern matching** for Result handling
+2. **Prefer direct operations** like `mongodb.to_dataframe()`
+3. **Compose with functional pipelines** using `pipe()`, `filter()`, `transform()`
+4. **Chain operations** with `.map()`, `.then()` for error propagation
+
+### Error Handling Guidelines
+
+- **Always handle Results** - don't ignore potential errors
+- **Use pattern matching** over if/else when possible  
+- **Chain operations safely** with Result methods
+- **Provide meaningful error context** in your error handling
+
+This modern approach makes MongoDB integration both powerful and safe! 🚀
 
 #### Query Examples
 

@@ -1,0 +1,47 @@
+---
+# Test users collection data
+users:
+  - _id: "user1"
+    name: "Alice Johnson"
+    age: 30
+    active: true
+    email: "alice@example.com"
+    department: "Engineering"
+    salary: 75000
+    joined_date: "2022-01-15T00:00:00Z"
+
+  - _id: "user2"
+    name: "Bob Smith"
+    age: 25
+    active: true
+    email: "bob@example.com"
+    department: "Marketing"
+    salary: 55000
+    joined_date: "2023-03-20T00:00:00Z"
+
+  - _id: "user3"
+    name: "Charlie Brown"
+    age: 35
+    active: false
+    email: "charlie@example.com"
+    department: "Engineering"
+    salary: 85000
+    joined_date: "2021-08-10T00:00:00Z"
+
+  - _id: "user4"
+    name: "Diana Prince"
+    age: 28
+    active: true
+    email: "diana@example.com"
+    department: "Sales"
+    salary: 62000
+    joined_date: "2022-11-05T00:00:00Z"
+
+  - _id: "user5"
+    name: "Eve Adams"
+    age: 22
+    active: false
+    email: "eve@example.com"
+    department: "HR"
+    salary: 45000
+    joined_date: "2024-01-12T00:00:00Z"

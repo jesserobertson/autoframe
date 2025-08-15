@@ -104,7 +104,7 @@ def to_dataframe(
 
 # Core MongoDB functions (moved from sources/simple.py)
 
-def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataSourceError]:
+def connect(connection_string: str) -> Result[pymongo.MongoClient, DataSourceError]:
     """Connect to MongoDB with automatic retry logic.
     
     Args:
@@ -114,16 +114,16 @@ def connect_mongodb(connection_string: str) -> Result[pymongo.MongoClient, DataS
         Result[MongoClient, DataSourceError]
         
     Examples:
-        >>> client_result = connect_mongodb("mongodb://localhost:27017")
+        >>> client_result = connect("mongodb://localhost:27017")
         >>> client = client_result.unwrap()
     """
     @with_database_retry
-    def connect() -> pymongo.MongoClient:
+    def connect_impl() -> pymongo.MongoClient:
         client: pymongo.MongoClient = pymongo.MongoClient(connection_string, serverSelectionTimeoutMS=3000)
         client.admin.command('ping')  # Test connection
         return client
     
-    return connect()
+    return connect_impl()
 
 
 def fetch(
@@ -155,7 +155,7 @@ def fetch(
         ... )
     """
     return (
-        connect_mongodb(connection_string)
+        connect(connection_string)
         .then(lambda client: _query_collection(client, database, collection, query, limit))
     )
 
@@ -178,7 +178,7 @@ def count(
         Result[int, DataSourceError]
     """
     return (
-        connect_mongodb(connection_string)
+        connect(connection_string)
         .then(lambda client: _count_collection(client, database, collection, query))
     )
 
@@ -232,7 +232,7 @@ def fetch_in_batches(
         ...     # Process each batch
     """
     return (
-        connect_mongodb(connection_string)
+        connect(connection_string)
         .then(lambda client: _fetch_batches_from_client_with_retry(client, database, collection, batch_size, query))
     )
 

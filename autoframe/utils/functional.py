@@ -124,7 +124,7 @@ def apply_schema(schema: dict[str, str]) -> Callable[[DataFrameType], DataFrameT
     """
     # Functional approach - use duck typing since both pandas and polars have similar APIs
     def apply_to_df(df: DataFrameType) -> DataFrameType:
-        return _apply_schema_unified(df, schema)
+        return _apply_schema(df, schema)
     
     return apply_to_df
 
@@ -270,18 +270,18 @@ def pipe(*functions: Callable[[T], T]) -> Callable[[T], T]:
 
 
 # Private helper functions - Functional approach using duck typing
-def _apply_schema_unified(df: DataFrameType, schema: dict[str, str]) -> DataFrameType:
+def _apply_schema(df: DataFrameType, schema: dict[str, str]) -> DataFrameType:
     """Apply schema to any dataframe type - truly functional approach with duck typing.
     
     Ask for forgiveness, not permission! Try operations and handle failures gracefully.
     """
     # Define conversion strategies - no type checking needed!
     converters = {
-        "int": _convert_to_int,
-        "float": _convert_to_float, 
-        "string": _convert_to_string,
-        "datetime": _convert_to_datetime,
-        "bool": _convert_to_bool
+        "int": _to_int,
+        "float": _to_float, 
+        "string": _to_string,
+        "datetime": _to_datetime,
+        "bool": _to_bool
     }
     
     # Apply conversions functionally - duck typing FTW!
@@ -295,7 +295,7 @@ def _apply_schema_unified(df: DataFrameType, schema: dict[str, str]) -> DataFram
     return df
 
 
-def _convert_to_int(df: DataFrameType, field: str) -> DataFrameType:
+def _to_int(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to integer using Result types."""
     # Try polars first, fall back to pandas
     polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Int64)))  # type: ignore
@@ -305,7 +305,7 @@ def _convert_to_int(df: DataFrameType, field: str) -> DataFrameType:
     )).unwrap_or(df))
 
 
-def _convert_to_float(df: DataFrameType, field: str) -> DataFrameType:
+def _to_float(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to float using Result types.""" 
     polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Float64)))  # type: ignore
     
@@ -314,7 +314,7 @@ def _convert_to_float(df: DataFrameType, field: str) -> DataFrameType:
     )).unwrap_or(df))
 
 
-def _convert_to_string(df: DataFrameType, field: str) -> DataFrameType:
+def _to_string(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to string using Result types."""
     polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Utf8)))  # type: ignore
     
@@ -323,7 +323,7 @@ def _convert_to_string(df: DataFrameType, field: str) -> DataFrameType:
     )).unwrap_or(df))
 
 
-def _convert_to_datetime(df: DataFrameType, field: str) -> DataFrameType:
+def _to_datetime(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to datetime using Result types."""
     polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Datetime)))  # type: ignore
     
@@ -332,7 +332,7 @@ def _convert_to_datetime(df: DataFrameType, field: str) -> DataFrameType:
     )).unwrap_or(df))
 
 
-def _convert_to_bool(df: DataFrameType, field: str) -> DataFrameType:
+def _to_bool(df: DataFrameType, field: str) -> DataFrameType:
     """Convert field to boolean using Result types."""
     polars_result = execute(lambda: df.with_columns(pl.col(field).cast(pl.Boolean)))  # type: ignore
     

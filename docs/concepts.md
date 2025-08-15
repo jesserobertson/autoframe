@@ -53,10 +53,10 @@ AutoFrame provides unified interfaces for different data sources while maintaini
 The simplest approach uses standalone functions:
 
 ```python
-from autoframe.sources.simple import fetch_documents, connect_mongodb
+from autoframe.sources.simple import fetch_documents, connect
 
 # Direct function calls
-client_result = connect_mongodb("mongodb://localhost:27017")
+client_result = connect("mongodb://localhost:27017")
 docs_result = fetch_documents("mongodb://localhost:27017", "db", "coll")
 ```
 

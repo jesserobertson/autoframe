@@ -19,7 +19,7 @@ def test_mongodb_import():
     import autoframe.mongodb as mongodb
     assert hasattr(mongodb, 'to_dataframe')
     assert hasattr(mongodb, 'fetch')
-    assert hasattr(mongodb, 'connect_mongodb')
+    assert hasattr(mongodb, 'connect')
 
 
 def test_create_dataframe_from_documents():

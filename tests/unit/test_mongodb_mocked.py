@@ -5,7 +5,7 @@ These tests use mocks to test the MongoDB functionality without requiring a real
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from autoframe.mongodb import fetch, connect_mongodb, count, fetch_in_batches
+from autoframe.mongodb import fetch, connect, count, fetch_in_batches
 import autoframe.mongodb as mongodb
 from autoframe.types import DataSourceError
 import pymongo
@@ -22,7 +22,7 @@ class TestMongoDBConnectionMocked:
         mock_client.admin.command.return_value = {"ok": 1}
         mock_client_class.return_value = mock_client
         
-        result = connect_mongodb("mongodb://localhost:27017")
+        result = connect("mongodb://localhost:27017")
         
         assert result.is_ok()
         client = result.unwrap()
@@ -39,7 +39,7 @@ class TestMongoDBConnectionMocked:
         # Setup mock to raise exception
         mock_client_class.side_effect = pymongo.errors.ConnectionFailure("Connection failed")
         
-        result = connect_mongodb("mongodb://invalid:27017")
+        result = connect("mongodb://invalid:27017")
         
         assert result.is_err()
         error = result.unwrap_err()
@@ -54,7 +54,7 @@ class TestMongoDBConnectionMocked:
         mock_client.admin.command.side_effect = pymongo.errors.ServerSelectionTimeoutError("Ping failed")
         mock_client_class.return_value = mock_client
         
-        result = connect_mongodb("mongodb://localhost:27017")
+        result = connect("mongodb://localhost:27017")
         
         assert result.is_err()
         error = result.unwrap_err()
@@ -64,7 +64,7 @@ class TestMongoDBConnectionMocked:
 class TestMongoDBFetchMocked:
     """Test MongoDB fetch functionality with mocked connections."""
     
-    @patch('autoframe.mongodb.connect_mongodb')
+    @patch('autoframe.mongodb.connect')
     def test_fetch_success(self, mock_connect):
         """Test successful document fetching with mock."""
         # Setup mock client and proper chaining
@@ -97,7 +97,7 @@ class TestMongoDBFetchMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.mongodb.connect_mongodb')
+    @patch('autoframe.mongodb.connect')
     def test_fetch_with_query(self, mock_connect):
         """Test fetching with query filter using mock."""
         # Setup mock client and proper chaining
@@ -127,7 +127,7 @@ class TestMongoDBFetchMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.mongodb.connect_mongodb')
+    @patch('autoframe.mongodb.connect')
     def test_fetch_connection_failure(self, mock_connect):
         """Test fetch with connection failure."""
         from logerr import Err
@@ -143,7 +143,7 @@ class TestMongoDBFetchMocked:
 class TestMongoDBCountMocked:
     """Test MongoDB count functionality with mocked connections."""
     
-    @patch('autoframe.mongodb.connect_mongodb')
+    @patch('autoframe.mongodb.connect')
     def test_count_success(self, mock_connect):
         """Test successful document counting with mock."""
         # Setup mock client and mock the entire call chain
@@ -168,7 +168,7 @@ class TestMongoDBCountMocked:
         # Verify client.close() was called
         mock_client.close.assert_called_once()
     
-    @patch('autoframe.mongodb.connect_mongodb')  
+    @patch('autoframe.mongodb.connect')  
     def test_count_with_query(self, mock_connect):
         """Test counting with query filter using mock."""
         # Setup mock client and mock the entire call chain
@@ -198,7 +198,7 @@ class TestMongoDBCountMocked:
 class TestMongoDBBatchesMocked:
     """Test MongoDB batch fetching with mocked connections."""
     
-    @patch('autoframe.mongodb.connect_mongodb')
+    @patch('autoframe.mongodb.connect')
     def test_fetch_in_batches_success(self, mock_connect):
         """Test successful batch fetching with mock."""
         # Simplified test that focuses on the key functionality

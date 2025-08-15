@@ -7,7 +7,7 @@ AutoFrame's functional API provides composable, pure functions that follow funct
 ### Document Fetching
 
 ```python
-from autoframe.sources.simple import fetch, connect_mongodb
+from autoframe.sources.simple import fetch, connect
 
 # Basic document fetching
 result = fetch(

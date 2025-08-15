@@ -23,7 +23,7 @@ High-level pipeline creation and fluent interfaces:
 Simple functions for data fetching:
 
 - `fetch_documents()` - MongoDB document fetching
-- `connect_mongodb()` - MongoDB connection handling
+- `connect()` - MongoDB connection handling
 - Connection utilities and retry logic
 
 ### [Quality Logging](quality.md)

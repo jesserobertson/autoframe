@@ -4,7 +4,7 @@ This section documents the data source interfaces and implementations.
 
 ## Simple Functions
 
-::: autoframe.sources.simple.connect_mongodb
+::: autoframe.sources.simple.connect
 
 ::: autoframe.sources.simple.fetch
 

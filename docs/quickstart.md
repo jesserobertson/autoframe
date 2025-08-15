@@ -1,189 +1,230 @@
 # Quick Start
 
-Get up and running with AutoFrame in minutes! This guide shows you the essential patterns for functional data processing.
+Get up and running with AutoFrame using modern Python 3.12+ functional patterns! This guide showcases the recommended functional-first approach with match statements and Result types.
 
-## Your First DataFrame
+## Modern Functional Style (Recommended)
 
-Let's start with the basics - converting documents to a DataFrame:
+### Your First DataFrame with Pattern Matching
+
+```python
+import autoframe.mongodb as mongodb
+from logerr import Ok, Err
+
+# Modern Python 3.12+ approach with Result types
+result = mongodb.to_dataframe(
+    "mongodb://localhost:27017",
+    "ecommerce",
+    "orders", 
+    query={"status": "completed"},
+    schema={"amount": "float", "date": "datetime"}
+)
+
+# Handle results with pattern matching (modern Python!)
+match result:
+    case Ok(df):
+        print(f"✅ Success: {len(df)} orders loaded")
+        print(df.head())
+        # Continue processing...
+    case Err(error):
+        print(f"❌ Error: {error}")
+        # Handle error appropriately...
+```
+
+### Functional Pipeline Composition
 
 ```python
 import autoframe as af
+import autoframe.mongodb as mongodb
+
+# Build functional pipeline with automatic error handling
+result = (
+    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "app", "users"))
+    .filter(lambda doc: doc.get("active", False))
+    .filter(lambda doc: doc.get("age", 0) >= 18)  # Adults only
+    .transform(lambda doc: {**doc, "category": "adult_user"})
+    .to_dataframe(backend="pandas")
+    .apply_schema({
+        "age": "int",
+        "created_at": "datetime", 
+        "last_login": "datetime"
+    })
+    .execute()
+)
+
+# Pattern match the pipeline result
+match result:
+    case Ok(df):
+        print(f"🎉 Pipeline success: {len(df)} users processed")
+        print(df.dtypes)  # Check applied schema
+    case Err(error):
+        print(f"💥 Pipeline failed: {error}")
+```
+
+### Pure Functional Composition 
+
+```python
+from autoframe.utils.functional import pipe, filter, transform, to_dataframe, apply_schema
+import autoframe.mongodb as mongodb
+
+# Define reusable transformation pipeline
+process_users = pipe(
+    filter(lambda doc: doc.get("active", True)),
+    transform(lambda doc: {**doc, "processed_at": "2025-01-15"}),
+    to_dataframe,
+    lambda df_result: df_result.map(apply_schema({"age": "int"}))
+)
+
+# Execute with automatic error propagation
+final_result = (
+    mongodb.fetch("mongodb://localhost:27017", "myapp", "users")
+    .then(process_users)
+)
+
+# Modern error handling
+match final_result:
+    case Ok(df):
+        print(f"✨ Processed {len(df)} users successfully")
+    case Err(error):
+        print(f"⚠️  Processing failed: {error}")
+```
+
+### Advanced Result Chaining
+
+```python
+import autoframe.mongodb as mongodb
+
+# Chain operations with automatic error propagation
+result = (
+    mongodb.to_dataframe("mongodb://localhost:27017", "sales", "transactions")
+    .map(lambda df: df.dropna())  # Clean data if successful
+    .map(lambda df: df.head(1000))  # Limit if successful  
+    .map(lambda df: df.assign(processed=True))  # Add flag if successful
+)
+
+# Handle with modern pattern matching
+match result:
+    case Ok(df):
+        print(f"🔥 Success: {len(df)} clean transactions")
+        # Continue with analysis...
+    case Err(error):
+        print(f"🚨 Chain failed: {error}")
+        # Handle error...
+```
+
+## Alternative Approaches (Fallback)
+
+### Traditional if/else Style (if you prefer)
+
+```python
+import autoframe.mongodb as mongodb
+
+# Traditional approach with explicit checks
+result = mongodb.to_dataframe(
+    "mongodb://localhost:27017",
+    "shop",
+    "products",
+    query={"in_stock": True}
+)
+
+if result.is_ok():
+    df = result.unwrap()
+    print(f"Loaded {len(df)} products")
+    # Process DataFrame...
+else:
+    error = result.unwrap_err()
+    print(f"Error loading products: {error}")
+```
+
+### Method Chaining Style
+
+```python
+import autoframe as af
+import autoframe.mongodb as mongodb
+
+# Fluent interface for those who prefer method chaining
+result = (
+    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "crm", "contacts"))
+    .filter(lambda doc: doc.get("active", True))
+    .transform(lambda doc: {**doc, "updated": True})
+    .to_dataframe()
+    .execute()
+)
+
+# Still use modern error handling
+match result:
+    case Ok(df): print(f"Processed {len(df)} contacts")
+    case Err(error): print(f"Failed: {error}")
+```
+
+## Working with Local Data
+
+Start with local data before connecting to MongoDB:
+
+```python
+from autoframe.utils.functional import to_dataframe, apply_schema
+from logerr import Ok, Err
 
 # Sample data
 documents = [
     {"name": "Alice", "age": "30", "city": "NYC", "active": True},
-    {"name": "Bob", "age": "25", "city": "LA", "active": True}, 
+    {"name": "Bob", "age": "25", "city": "LA", "active": True},
     {"name": "Charlie", "age": "35", "city": "Chicago", "active": False}
 ]
 
-# Simple conversion
-result = af.to_dataframe(documents)
-
-if result.is_ok():
-    df = result.unwrap()
-    print(f"✅ Created DataFrame with {len(df)} rows")
-    print(df.head())
-else:
-    print(f"❌ Error: {result.unwrap_err()}")
-```
-
-## Adding Schema Conversion
-
-Apply type conversions for cleaner data:
-
-```python
-# Define schema for type conversion
-schema = {
-    "age": "int",
-    "active": "bool"
-}
-
-# Chain operations with .map()
+# Convert with schema application
 result = (
-    af.to_dataframe(documents)
-    .map(af.apply_schema(schema))
+    to_dataframe(documents)
+    .map(apply_schema({"age": "int", "active": "bool"}))
 )
 
-df = result.unwrap()
-print(f"Age column type: {df['age'].dtype}")  # int64
-print(f"Active column type: {df['active'].dtype}")  # bool
+# Modern pattern matching
+match result:
+    case Ok(df):
+        print(f"✅ Created DataFrame: {len(df)} rows")
+        print(f"Age type: {df['age'].dtype}")  # int64  
+        print(f"Active type: {df['active'].dtype}")  # bool
+    case Err(error):
+        print(f"❌ Conversion failed: {error}")
 ```
 
-## Document Processing Pipeline
+## Error Handling Best Practices
 
-Use `pipe()` for composable document transformations:
+AutoFrame uses Result types for composable error handling:
 
 ```python
-from autoframe.utils.functional import filter_documents, transform_documents
+import autoframe.mongodb as mongodb
 
-# Create a processing pipeline
-process = af.pipe(
-    filter_documents(lambda doc: doc["active"]),          # Only active users
-    transform_documents(lambda doc: {                     # Add computed fields
-        **doc, 
-        "age_group": "adult" if int(doc["age"]) >= 18 else "minor",
-        "processed_at": "2024-01-01"
-    })
+# This will fail gracefully
+result = mongodb.to_dataframe(
+    "mongodb://invalid-host:27017",
+    "db", 
+    "collection"
 )
 
-# Apply the pipeline
-processed_docs = process(documents)
-result = af.to_dataframe(processed_docs)
-
-df = result.unwrap()
-print(f"Processed {len(df)} active users")
-print(df[["name", "age", "age_group"]].head())
+# Always use pattern matching for errors
+match result:
+    case Ok(df):
+        print("This won't execute")
+    case Err(error):
+        print(f"Expected connection error: {error}")
+        # Handle error gracefully - maybe try fallback data source
 ```
 
-## Method Chaining Interface
+## Key Modern Python Features Used
 
-For complex workflows, use the fluent pipeline interface:
+AutoFrame leverages Python 3.12+ features:
 
-```python
-# Mock fetch function (replace with real data source)
-def fetch_users():
-    return af.to_dataframe(documents)
-
-# Create pipeline with method chaining
-pipeline = (
-    af.create_pipeline(fetch_users)
-    .filter(lambda doc: doc["active"])
-    .transform(lambda doc: {**doc, "status": "processed"})
-    .to_dataframe()
-    .apply_schema({"age": "int"})
-)
-
-result = pipeline.execute()
-df = result.unwrap()
-print(f"Pipeline result: {len(df)} rows")
-```
-
-## Error Handling
-
-AutoFrame uses Result types for elegant error handling:
-
-```python
-# This will fail
-bad_result = af.to_dataframe(documents, backend="invalid")
-
-if bad_result.is_err():
-    error = bad_result.unwrap_err()
-    print(f"Expected error: {error}")
-
-# Chain operations safely
-safe_result = (
-    af.to_dataframe([])  # Empty is OK
-    .map(lambda df: df.assign(new_column="added"))
-    .map(af.apply_schema({"new_column": "string"}))
-)
-
-print(f"Safe chaining: {safe_result.is_ok()}")  # True
-```
-
-## MongoDB Integration
-
-Connect to MongoDB and create DataFrames:
-
-!!! note "MongoDB Required"
-    These examples require a running MongoDB instance. See [Installation](installation.md) for setup instructions.
-
-```python
-# Simple MongoDB to DataFrame
-result = af.mongodb_to_dataframe(
-    "mongodb://localhost:27017",
-    "ecommerce", 
-    "orders",
-    query={"status": "completed"},
-    limit=1000,
-    schema={"total": "float", "created_at": "datetime"}
-)
-
-if result.is_ok():
-    df = result.unwrap()
-    print(f"Retrieved {len(df)} completed orders")
-```
-
-## Functional Composition
-
-Combine everything with functional patterns:
-
-```python
-# Define reusable transformations
-add_metadata = transform_documents(lambda doc: {
-    **doc, 
-    "source": "api",
-    "processed_at": "2024-01-01"
-})
-
-adults_only = filter_documents(lambda doc: int(doc["age"]) >= 18)
-
-clean_schema = af.apply_schema({
-    "age": "int",
-    "active": "bool"
-})
-
-# Compose the full pipeline
-full_pipeline = af.pipe(adults_only, add_metadata)
-
-# Execute with error handling
-result = (
-    af.to_dataframe(documents)
-    .map(lambda df: full_pipeline([doc for _, doc in df.iterrows()]))  # Apply to docs
-    .then(af.to_dataframe)  # Back to DataFrame
-    .map(clean_schema)  # Apply schema
-)
-
-if result.is_ok():
-    final_df = result.unwrap()
-    print("✅ Full pipeline completed successfully!")
-    print(final_df.info())
-```
+- **Union types**: `str | None` instead of `Optional[str]`
+- **Built-in generics**: `list[dict[str, Any]]` instead of `List[Dict[str, Any]]`
+- **Pattern matching**: `match`/`case` for Result handling
+- **Type statements**: `type UserId = int | str`
+- **Function composition**: Pure functions with `.map()`, `.then()`
 
 ## Next Steps
 
-Now that you've seen the basics:
+Now that you've seen the modern functional approach:
 
-- [Examples](examples.md) - More real-world patterns
-- [Core Concepts](concepts.md) - Understanding the functional approach  
-- [API Reference](api/index.md) - Complete documentation
+- [Functional API Reference](functional-api.md) - Deep dive into function composition
+- [Examples](examples.md) - Real-world patterns and recipes
+- [Data Sources](data-sources.md) - MongoDB integration details
 - [Pipeline Guide](pipeline.md) - Advanced pipeline patterns

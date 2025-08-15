@@ -1,0 +1,50 @@
+---
+# Test orders collection data
+orders:
+  - _id: "order1"
+    user_id: "user1"
+    total: 129.99
+    status: "completed"
+    items: 3
+    order_date: "2024-07-15T00:00:00Z"
+    products: ["laptop_stand", "wireless_mouse", "usb_hub"]
+
+  - _id: "order2"
+    user_id: "user2"
+    total: 75.25
+    status: "pending"
+    items: 2
+    order_date: "2024-07-20T00:00:00Z"
+    products: ["notebook", "pen_set"]
+
+  - _id: "order3"
+    user_id: "user1"
+    total: 245.00
+    status: "completed"
+    items: 5
+    order_date: "2024-07-18T00:00:00Z"
+    products: ["monitor", "keyboard", "mouse_pad", "cable_organizer", "webcam"]
+
+  - _id: "order4"
+    user_id: "user3"
+    total: 89.50
+    status: "cancelled"
+    items: 1
+    order_date: "2024-07-12T00:00:00Z"
+    products: ["headphones"]
+
+  - _id: "order5"
+    user_id: "user4"
+    total: 156.75
+    status: "completed"
+    items: 4
+    order_date: "2024-07-22T00:00:00Z"
+    products: ["desk_lamp", "phone_stand", "charging_cable", "bluetooth_speaker"]
+
+  - _id: "order6"
+    user_id: "user2"
+    total: 42.00
+    status: "shipped"
+    items: 2
+    order_date: "2024-07-25T00:00:00Z"
+    products: ["coffee_mug", "stress_ball"]
