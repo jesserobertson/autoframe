@@ -130,12 +130,12 @@ result_docs = process_users(raw_documents)
 Use the pipeline builder for method chaining:
 
 ```python
-from autoframe import create_pipeline
+from autoframe import pipeline
 
 fetch_fn = lambda: fetch_documents("mongodb://localhost", "db", "users")
 
 result = (
-    create_pipeline(fetch_fn)
+    pipeline(fetch_fn)
     .filter(lambda doc: doc["active"])
     .transform(lambda doc: {**doc, "category": "user"})
     .to_dataframe()

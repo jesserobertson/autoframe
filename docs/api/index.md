@@ -1,30 +1,31 @@
 # API Reference
 
-AutoFrame provides a functional API built around simple, composable functions. The API is organized into several modules:
+AutoFrame provides a modern Python 3.12+ functional API built around simple, composable functions with Result types and pattern matching. The API is organized into several modules:
 
-## Core Modules
+## Core Modules (Modern Python 3.12+)
+
+### [MongoDB Integration](sources.md)
+Direct MongoDB operations with Result types and pattern matching:
+
+- `mongodb.to_dataframe()` - Direct MongoDB to DataFrame conversion
+- `mongodb.fetch()` - Document fetching with Result types  
+- `mongodb.connect()` - Connection handling with automatic retry
+- `mongodb.fetch_in_batches()` - Large dataset processing
 
 ### [Functional Utilities](functional.md)
-The heart of AutoFrame - composable functions for data processing:
+Pure functions for composable data processing:
 
 - `to_dataframe()` - Convert documents to DataFrames
-- `apply_schema()` - Type conversion functions  
-- `pipe()` - Function composition
-- Document transformations: `filter_documents()`, `transform_documents()`, etc.
+- `apply_schema()` - Type conversion with modern syntax
+- `pipe()` - Function composition for pipelines
+- `filter()`, `transform()` - Document processing functions
 
 ### [Pipeline Interface](pipeline.md)  
-High-level pipeline creation and fluent interfaces:
+Fluent interfaces for complex workflows:
 
-- `mongodb_to_dataframe()` - One-function MongoDB to DataFrame
-- `create_pipeline()` - Fluent method chaining interface
-- `fetch_and_process()` - Imperative-style processing
-
-### [Data Sources](sources.md)
-Simple functions for data fetching:
-
-- `fetch_documents()` - MongoDB document fetching
-- `connect()` - MongoDB connection handling
-- Connection utilities and retry logic
+- `pipeline()` - Method chaining with Result types
+- Composable transformations with automatic error propagation
+- Modern error handling with pattern matching
 
 ### [Quality Logging](quality.md)
 Simple quality logging for Result failures and data completeness:
@@ -71,7 +72,7 @@ validate_columns(required_cols)      # Validation function creator
 
 ```python
 # Method chaining
-af.create_pipeline(fetch_fn)
+af.pipeline(fetch_fn)
   .filter(predicate)
   .transform(transform_fn) 
   .limit(count)

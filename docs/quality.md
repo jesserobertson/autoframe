@@ -268,7 +268,7 @@ config.set("logging", "enable_performance_logging", True)
 ### Complete Pipeline with Quality Logging
 
 ```python
-from autoframe import create_pipeline, fetch_documents
+from autoframe import pipeline, fetch_documents
 from autoframe.quality import log_document_completeness
 
 # Define data source with quality logging
@@ -282,7 +282,7 @@ def fetch_users_with_logging():
 
 # Create pipeline (quality logging is automatic)
 result = (
-    create_pipeline(fetch_users_with_logging)
+    pipeline(fetch_users_with_logging)
     .filter(lambda doc: doc.get("active", False))  
     .transform(lambda doc: {**doc, "processed_at": "2024-01-01"})
     .to_dataframe()

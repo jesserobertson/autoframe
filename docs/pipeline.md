@@ -49,7 +49,7 @@ df = result.unwrap()  # Gets all data with default settings
 The pipeline builder provides method chaining for complex workflows:
 
 ```python
-from autoframe import create_pipeline, fetch_documents
+from autoframe import pipeline, fetch_documents
 
 # Define data source
 fetch_users = lambda: fetch_documents(
@@ -60,7 +60,7 @@ fetch_users = lambda: fetch_documents(
 
 # Build processing pipeline
 result = (
-    create_pipeline(fetch_users)
+    pipeline(fetch_users)
     .filter(lambda doc: doc.get("active", False))
     .filter(lambda doc: doc.get("age", 0) >= 18)
     .transform(lambda doc: {
@@ -90,7 +90,7 @@ if result.is_ok():
 
 ```python
 pipeline = (
-    create_pipeline(data_source)
+    pipeline(data_source)
     .filter(lambda doc: doc["active"])                    # Simple boolean
     .filter(lambda doc: doc.get("age", 0) >= 21)          # Age filter
     .filter(lambda doc: "premium" in doc.get("tags", [])) # List membership
@@ -101,7 +101,7 @@ pipeline = (
 
 ```python
 pipeline = (
-    create_pipeline(data_source)
+    pipeline(data_source)
     .transform(lambda doc: {**doc, "processed": True})
     .transform(lambda doc: {
         **doc,
@@ -118,7 +118,7 @@ pipeline = (
 
 ```python
 pipeline = (
-    create_pipeline(data_source)
+    pipeline(data_source)
     .limit(1000)  # Take first 1000 after filters/transforms
 )
 ```
@@ -127,7 +127,7 @@ pipeline = (
 
 ```python
 pipeline = (
-    create_pipeline(data_source)
+    pipeline(data_source)
     .to_dataframe(backend="polars")  # Choose backend
     .apply_schema({
         "id": "int",
@@ -141,7 +141,7 @@ pipeline = (
 
 ```python
 pipeline = (
-    create_pipeline(data_source)
+    pipeline(data_source)
     .to_dataframe()
     .validate(["id", "name", "email"])  # Ensure required columns exist
 )
@@ -220,7 +220,7 @@ df_result = processed_result.then(
 def create_conditional_pipeline(data_source, use_polars=True):
     """Create pipeline with conditional backend selection."""
     pipeline = (
-        create_pipeline(data_source)
+        pipeline(data_source)
         .filter(lambda doc: doc.get("active", False))
     )
     
@@ -237,7 +237,7 @@ def create_conditional_pipeline(data_source, use_polars=True):
 ```python
 def create_user_pipeline(data_source, adult_only=True):
     """Reusable user processing pipeline."""
-    pipeline = create_pipeline(data_source)
+    pipeline = pipeline(data_source)
     
     if adult_only:
         pipeline = pipeline.filter(lambda doc: doc.get("age", 0) >= 18)
@@ -267,7 +267,7 @@ def robust_pipeline(data_source):
     try:
         # Try full processing
         result = (
-            create_pipeline(data_source)
+            pipeline(data_source)
             .filter(lambda doc: doc["active"])
             .transform(lambda doc: {**doc, "processed": True})
             .to_dataframe(backend="polars")
@@ -282,7 +282,7 @@ def robust_pipeline(data_source):
     
     # Fallback: minimal processing
     return (
-        create_pipeline(data_source)
+        pipeline(data_source)
         .to_dataframe(backend="pandas")  # More reliable
         .execute()
     )
@@ -308,7 +308,7 @@ def create_batch_pipeline(connection_string, database, collection, batch_size=50
     for batch in batches_result.unwrap():
         # Process each batch with pipeline
         batch_result = (
-            create_pipeline(lambda: Ok(batch))  # Wrap batch as source
+            pipeline(lambda: Ok(batch))  # Wrap batch as source
             .filter(lambda doc: doc.get("active", False))
             .to_dataframe()
             .execute()
@@ -333,7 +333,7 @@ def streaming_pipeline(data_source, chunk_size=1000):
     
     def process_chunk(docs):
         return (
-            create_pipeline(lambda: Ok(docs))
+            pipeline(lambda: Ok(docs))
             .filter(lambda doc: doc["active"])
             .transform(lambda doc: {**doc, "processed": True})
             .to_dataframe()
@@ -369,7 +369,7 @@ def create_api_pipeline(api_client):
             return Err(DataSourceError(f"API error: {e}"))
     
     return (
-        create_pipeline(fetch_api_data)
+        pipeline(fetch_api_data)
         .transform(lambda doc: {**doc, "source": "api"})
         .to_dataframe()
     )
@@ -384,7 +384,7 @@ def create_multi_source_pipeline(sources):
     
     for source_name, source_fn in sources.items():
         result = (
-            create_pipeline(source_fn)
+            pipeline(source_fn)
             .transform(lambda doc: {**doc, "source": source_name})
             .to_dataframe()
             .execute()

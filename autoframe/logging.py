@@ -4,24 +4,25 @@ This module sets up logging integration between autoframe and logerr,
 providing consistent logging patterns throughout the library.
 """
 
-from typing import Optional, Any, Dict
 import sys
 from pathlib import Path
+from typing import Any
 
-from loguru import logger
 from logerr.utils import execute
+from loguru import logger
+
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     enable_performance_logging: bool = False,
     log_query_details: bool = True
 ) -> None:
     """Set up logging for autoframe.
-    
+
     This function configures loguru and logerr integration with explicit parameters
     instead of using configuration files.
-    
+
     Args:
         level: Log level (default: "INFO")
         log_file: Optional log file path
@@ -30,10 +31,10 @@ def setup_logging(
     """
     # Use explicit parameter
     log_level = level
-    
+
     # Remove default handler and add configured handler
     logger.remove()
-    
+
     # Console handler
     logger.add(
         sys.stderr,
@@ -44,7 +45,7 @@ def setup_logging(
                "<level>{message}</level>",
         colorize=True
     )
-    
+
     # File handler if specified
     if log_file:
         logger.add(
@@ -55,9 +56,9 @@ def setup_logging(
             retention="7 days",
             compression="gz"
         )
-    
+
     # logerr will automatically use loguru if available
-    
+
     # Set up additional context for autoframe
     logger.configure(extra={
         "autoframe_version": "0.1.0",
@@ -67,10 +68,10 @@ def setup_logging(
 
 def get_logger(name: str) -> Any:
     """Get a logger instance for a specific module.
-    
+
     Args:
         name: Logger name (typically __name__)
-        
+
     Returns:
         Logger instance
     """
@@ -81,12 +82,12 @@ def log_dataframe_operation(
     operation: str,
     source_type: str,
     document_count: int,
-    execution_time: Optional[float] = None,
+    execution_time: float | None = None,
     enable_performance_logging: bool = False,
     **kwargs: Any
 ) -> None:
     """Log dataframe operations with consistent formatting.
-    
+
     Args:
         operation: Operation type (e.g., "create_dataframe", "query")
         source_type: Data source type (e.g., "mongodb", "postgres")
@@ -97,17 +98,17 @@ def log_dataframe_operation(
     """
     if not enable_performance_logging:
         return
-    
+
     log_context = {
         "operation": operation,
         "source_type": source_type,
         "document_count": document_count,
         **kwargs
     }
-    
+
     if execution_time is not None:
         log_context["execution_time_seconds"] = execution_time
-    
+
     logger.info(
         f"DataFrameOperation completed: {operation}",
         **log_context
@@ -117,11 +118,11 @@ def log_dataframe_operation(
 def log_quality_assessment(
     collection_name: str,
     quality_score: float,
-    metrics: Dict[str, Any],
+    metrics: dict[str, Any],
     **kwargs: Any
 ) -> None:
     """Log data quality assessment results.
-    
+
     Args:
         collection_name: Name of the collection assessed
         quality_score: Overall quality score (0.0 to 1.0)
@@ -141,22 +142,22 @@ def log_connection_event(
     source_type: str,
     connection_string: str,
     success: bool,
-    error: Optional[str] = None,
+    error: str | None = None,
     **kwargs: Any
 ) -> None:
     """Log database connection events.
-    
+
     Args:
         event_type: Event type ("connect", "disconnect", "test")
         source_type: Data source type
-        connection_string: Connection string (will be sanitized)  
+        connection_string: Connection string (will be sanitized)
         success: Whether the operation succeeded
         error: Error message if failed
         **kwargs: Additional context
     """
     # Sanitize connection string for logging
     sanitized_connection = _sanitize_connection_string(connection_string)
-    
+
     log_context = {
         "event_type": event_type,
         "source_type": source_type,
@@ -164,10 +165,10 @@ def log_connection_event(
         "success": success,
         **kwargs
     }
-    
+
     if error:
         log_context["error"] = error
-    
+
     if success:
         logger.info(f"ConnectionEvent: {event_type} succeeded", **log_context)
     else:
@@ -177,14 +178,14 @@ def log_connection_event(
 def log_query_execution(
     database: str,
     collection: str,
-    query: Dict[str, Any],
+    query: dict[str, Any],
     result_count: int,
-    execution_time: Optional[float] = None,
+    execution_time: float | None = None,
     log_query_details: bool = True,
     **kwargs: Any
 ) -> None:
     """Log query execution details.
-    
+
     Args:
         database: Database name
         collection: Collection name
@@ -196,10 +197,10 @@ def log_query_execution(
     """
     if not log_query_details:
         return
-    
+
     # Sanitize query for logging (remove potential sensitive data)
     sanitized_query = _sanitize_query(query)
-    
+
     log_context = {
         "database": database,
         "collection": collection,
@@ -207,19 +208,19 @@ def log_query_execution(
         "result_count": result_count,
         **kwargs
     }
-    
+
     if execution_time is not None:
         log_context["execution_time_seconds"] = execution_time
-    
-    logger.debug(f"QueryExecution completed", **log_context)
+
+    logger.debug("QueryExecution completed", **log_context)
 
 
 def _sanitize_connection_string(connection_string: str) -> str:
     """Sanitize connection string for logging using Result types.
-    
+
     Args:
         connection_string: Original connection string
-        
+
     Returns:
         Sanitized connection string
     """
@@ -232,24 +233,24 @@ def _sanitize_connection_string(connection_string: str) -> str:
                 _, host_part = rest.split("@", 1)
                 return f"{protocol}://***@{host_part}"
         return connection_string
-    
+
     return execute(sanitize).unwrap_or("***")
 
 
-def _sanitize_query(query: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_query(query: dict[str, Any]) -> dict[str, Any]:
     """Sanitize query dictionary for logging using Result types.
-    
+
     Args:
         query: Original query dictionary
-        
+
     Returns:
         Sanitized query dictionary
     """
     sensitive_fields = {"password", "token", "secret", "key", "auth"}
-    
+
     def sanitize_value(value: Any) -> Any:
         if isinstance(value, dict):
-            return {k: sanitize_value(v) if k.lower() not in sensitive_fields else "***" 
+            return {k: sanitize_value(v) if k.lower() not in sensitive_fields else "***"
                    for k, v in value.items()}
         elif isinstance(value, list):
             return [sanitize_value(v) for v in value]
@@ -257,7 +258,7 @@ def _sanitize_query(query: Dict[str, Any]) -> Dict[str, Any]:
             # Truncate very long strings
             return value[:97] + "..."
         return value
-    
+
     return execute(lambda: sanitize_value(query)).unwrap_or({"query": "***"})
 
 
@@ -269,7 +270,7 @@ def _initialize_default_logging() -> None:
         if not logger._core.handlers:
             setup_logging()
         return None
-    
+
     # Execute initialization and ignore any errors (fail silently)
     execute(initialize)
 

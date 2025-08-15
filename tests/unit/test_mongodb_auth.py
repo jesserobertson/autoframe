@@ -49,7 +49,7 @@ class TestMongoDBConnect:
     """Test MongoDB connection with authentication."""
 
     @patch("autoframe.mongodb.pymongo.MongoClient")
-    @patch("autoframe.mongodb.with_database_retry")
+    @patch("autoframe.mongodb.db_retry")
     def test_connect_with_connection_string(self, mock_retry, mock_client_class):
         """Test connection with connection string."""
         mock_client = Mock()
@@ -80,7 +80,7 @@ class TestMongoDBConnect:
 
         config = create_local_config(database="testdb")
 
-        with patch("autoframe.mongodb.with_database_retry", lambda f: f):
+        with patch("autoframe.mongodb.db_retry", lambda f: f):
             result = connect(config)
 
         assert result.is_ok()
@@ -100,7 +100,7 @@ class TestMongoDBConnect:
         creds = MongoCredentials(username="user", password="pass")
         config = MongoConnectionConfig(host="localhost", port=27017, credentials=creds)
 
-        with patch("autoframe.mongodb.with_database_retry", lambda f: f):
+        with patch("autoframe.mongodb.db_retry", lambda f: f):
             result = connect(config)
 
         assert result.is_ok()
@@ -112,7 +112,7 @@ class TestMongoDBConnect:
         )
 
     @patch("autoframe.mongodb.pymongo.MongoClient")
-    @patch("autoframe.mongodb.with_database_retry")
+    @patch("autoframe.mongodb.db_retry")
     def test_connect_failure(self, mock_retry, mock_client_class):
         """Test connection failure handling."""
         mock_client_class.side_effect = Exception("Connection failed")
@@ -188,8 +188,8 @@ class TestMongoDBToDataFrame:
 
     @patch("autoframe.mongodb.fetch")
     @patch("autoframe.mongodb._to_dataframe")
-    @patch("autoframe.mongodb.log_result_failure")
-    @patch("autoframe.mongodb.log_conversion_operation")
+    @patch("autoframe.mongodb.log_failure")
+    @patch("autoframe.mongodb.log_conversion")
     def test_to_dataframe_with_config(
         self, mock_log_conv, mock_log_fail, mock_to_df, mock_fetch
     ):
@@ -223,8 +223,8 @@ class TestMongoDBToDataFrame:
 
     @patch("autoframe.mongodb.fetch")
     @patch("autoframe.mongodb._to_dataframe")
-    @patch("autoframe.mongodb.log_result_failure")
-    @patch("autoframe.mongodb.log_conversion_operation")
+    @patch("autoframe.mongodb.log_failure")
+    @patch("autoframe.mongodb.log_conversion")
     def test_to_dataframe_with_connection_string(
         self, mock_log_conv, mock_log_fail, mock_to_df, mock_fetch
     ):

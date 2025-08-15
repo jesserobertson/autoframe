@@ -12,28 +12,41 @@ __email__ = "jess.robertson@niwa.co.nz"
 # Simplified functional, composable API
 from autoframe import auth, mongodb
 from autoframe.pipeline import pipeline
-from autoframe.quality import log_conversion_operation, log_result_failure
+from autoframe.quality import (
+    log_conversion,
+    log_failure,
+    log_conversion_operation,  # backward compatibility
+    log_result_failure,        # backward compatibility
+)
 from autoframe.utils.functional import apply_schema, pipe, to_dataframe
 from autoframe.utils.retry import (
-    retry_with_backoff,
-    with_database_retry,
-    with_network_retry,
+    db_retry,
+    net_retry,
+    retry_backoff,
+    with_database_retry,  # backward compatibility
+    with_network_retry,   # backward compatibility
+    retry_with_backoff,   # backward compatibility
 )
 
 __all__ = [
     "__version__",
     "apply_schema",
     "auth",
-    "log_conversion_operation",
+    "db_retry",
+    "log_conversion",
+    "log_conversion_operation",  # backward compatibility
+    "log_failure",
     # Transparent quality logging
-    "log_result_failure",
+    "log_result_failure",        # backward compatibility
     # Core functional API
     "mongodb",
+    "net_retry",
     "pipe",
     "pipeline",
-    "retry_with_backoff",
+    "retry_backoff",
+    "retry_with_backoff",  # backward compatibility
     "to_dataframe",
     # Retry utilities
-    "with_database_retry",
-    "with_network_retry",
+    "with_database_retry", # backward compatibility
+    "with_network_retry",  # backward compatibility
 ]

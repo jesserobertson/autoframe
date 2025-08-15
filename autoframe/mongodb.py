@@ -13,7 +13,7 @@ from logerr import Result  # type: ignore
 from logerr.utils import execute  # type: ignore
 
 from autoframe.auth import MongoConnectionConfig, validate_connection_string
-from autoframe.quality import log_conversion_operation, log_result_failure
+from autoframe.quality import log_conversion, log_failure
 from autoframe.types import (
     DataFrameResult,
     DataSourceError,
@@ -23,7 +23,7 @@ from autoframe.types import (
 )
 from autoframe.utils.functional import apply_schema
 from autoframe.utils.functional import to_dataframe as _to_dataframe
-from autoframe.utils.retry import with_database_retry
+from autoframe.utils.retry import db_retry
 
 
 def to_dataframe(
@@ -100,7 +100,7 @@ def to_dataframe(
 
     # Fetch documents with quality logging
     result = fetch(connection_string, database, collection, query, limit)
-    logged_result = log_result_failure(result, "mongodb_fetch", {
+    logged_result = log_failure(result, "mongodb_fetch", {
         "database": database,
         "collection": collection,
         "query": query,
@@ -109,7 +109,7 @@ def to_dataframe(
 
     # Convert to dataframe with logging
     df_result = logged_result.then(partial(_to_dataframe, backend=backend))
-    df_result = log_conversion_operation(
+    df_result = log_conversion(
         df_result,
         backend,
         len(logged_result.unwrap_or([]))
@@ -118,7 +118,7 @@ def to_dataframe(
     # Apply schema if provided
     if schema:
         df_result = df_result.map(apply_schema(schema))
-        df_result = log_result_failure(df_result, "schema_application", {
+        df_result = log_failure(df_result, "schema_application", {
             "schema": schema,
             "backend": backend
         })
@@ -147,7 +147,7 @@ def connect(connection: str | MongoConnectionConfig) -> Result[pymongo.MongoClie
     """
     connection_string = _resolve_connection(connection)
 
-    @with_database_retry
+    @db_retry
     def connect_impl() -> pymongo.MongoClient:
         client: pymongo.MongoClient = pymongo.MongoClient(connection_string, serverSelectionTimeoutMS=3000)
         client.admin.command("ping")  # Test connection
@@ -213,7 +213,7 @@ def count(
     )
 
 
-def create_fetcher(
+def fetcher(
     connection: str | MongoConnectionConfig,
     database: str,
     collection: str
@@ -229,14 +229,14 @@ def create_fetcher(
         Function that fetches documents with query and limit
 
     Examples:
-        >>> fetch_users = create_fetcher("mongodb://localhost", "mydb", "users")
+        >>> fetch_users = fetcher("mongodb://localhost", "mydb", "users")
         >>> active_users = fetch_users({"active": True}, 100)
         >>> all_users = fetch_users(None, None)
     """
     return partial(fetch, connection, database, collection)
 
 
-def fetch_in_batches(
+def fetch_batches(
     connection: str | MongoConnectionConfig,
     database: str,
     collection: str,
@@ -256,7 +256,7 @@ def fetch_in_batches(
         Result[list[list[dict]], DataSourceError]: List of batches
 
     Examples:
-        >>> batches_result = fetch_in_batches("mongodb://localhost", "db", "coll", 500)
+        >>> batches_result = fetch_batches("mongodb://localhost", "db", "coll", 500)
         >>> for batch in batches_result.unwrap():
         ...     df = to_dataframe(batch).unwrap()
         ...     # Process each batch
@@ -341,7 +341,7 @@ def _fetch_batches_from_client_with_retry(
     query: QueryDict | None
 ) -> Result[list[DocumentList], DataSourceError]:
     """Fetch documents in batches from an established client connection with retry."""
-    @with_database_retry
+    @db_retry
     def fetch_batches() -> list[DocumentList]:
         collection_obj = client[database][collection]
 

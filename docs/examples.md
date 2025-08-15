@@ -47,7 +47,7 @@ print(df.dtypes)
 ## Functional Pipeline Processing
 
 ```python
-from autoframe import create_pipeline, fetch_documents
+from autoframe import pipeline, fetch_documents
 from autoframe.utils.functional import pipe, filter_documents, transform_documents
 
 # Create a data fetcher
@@ -59,7 +59,7 @@ fetch_users = lambda: fetch_documents(
 
 # Build a processing pipeline
 result = (
-    create_pipeline(fetch_users)
+    pipeline(fetch_users)
     .filter(lambda doc: doc.get("active", False))
     .filter(lambda doc: doc.get("age", 0) >= 18)
     .transform(lambda doc: {**doc, "category": "adult_user"})
@@ -76,11 +76,11 @@ if result.is_ok():
 ## Batch Processing Large Datasets
 
 ```python
-from autoframe.sources.simple import fetch_in_batches
+from autoframe.mongodb import fetch_batches
 from autoframe.utils.functional import to_dataframe
 
 # Process large collections in batches
-batches_result = fetch_in_batches(
+batches_result = fetch_batches(
     "mongodb://localhost:27017",
     "logs",
     "events", 

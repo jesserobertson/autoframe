@@ -59,7 +59,7 @@ pixi run docs-build
 
 ### API Simplification Decisions
 **Keep these patterns:**
-- Pipeline-style functional composition with `create_pipeline()`
+- Pipeline-style functional composition with `pipeline()`
 - Direct MongoDB access via `mongodb.to_dataframe()`
 - Result/Option types for transparent error handling and logging
 - Pattern matching with `match` statements instead of `.is_ok()` checks
@@ -106,7 +106,7 @@ match result:
 
 # Pipeline interface for complex transformations
 result = (
-    af.create_pipeline(lambda: af.mongodb.fetch(conn, db, coll))
+    af.pipeline(lambda: af.mongodb.fetch(conn, db, coll))
     .filter(lambda d: d["active"])
     .transform(lambda d: {**d, "processed": True})
     .to_dataframe(backend="pandas")

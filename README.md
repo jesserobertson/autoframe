@@ -74,7 +74,7 @@ import autoframe.mongodb as mongodb
 
 # Functional pipeline with automatic error handling and quality logging
 result = (
-    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "app", "users"))
+    af.pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "app", "users"))
     .filter(lambda doc: doc.get("active", False))
     .filter(lambda doc: doc.get("age", 0) >= 18)
     .transform(lambda doc: {**doc, "category": "adult_user"})
@@ -180,7 +180,7 @@ import autoframe.mongodb as mongodb
 
 # Fluent interface for those who prefer method chaining
 result = (
-    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "crm", "contacts"))
+    af.pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "crm", "contacts"))
     .filter(lambda doc: doc.get("active", True))
     .transform(lambda doc: {**doc, "updated": True})
     .to_dataframe()
@@ -301,7 +301,7 @@ match result:
 import autoframe as af
 
 result = (
-    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "db", "users"))
+    af.pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "db", "users"))
     .filter(lambda doc: doc["active"])
     .transform(lambda doc: {**doc, "category": "active_user"})
     .to_dataframe(backend="pandas")

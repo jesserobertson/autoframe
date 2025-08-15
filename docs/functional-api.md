@@ -1,33 +1,54 @@
 # Functional API
 
-AutoFrame's functional API provides composable, pure functions that follow functional programming principles. All operations use Result types for error handling and avoid side effects.
+AutoFrame's modern functional API leverages Python 3.12+ features with composable, pure functions that follow functional programming principles. All operations use Result types with pattern matching for elegant error handling.
 
-## Core Functions
+## Modern Functional Style (Python 3.12+)
 
-### Document Fetching
+### Document Fetching with Pattern Matching
 
 ```python
-from autoframe.sources.simple import fetch, connect
+import autoframe.mongodb as mongodb
+from logerr import Ok, Err
 
-# Basic document fetching
-result = fetch(
+# Modern document fetching with Result types
+result = mongodb.fetch(
     connection_string="mongodb://localhost:27017",
-    database="mydb", 
+    database="mydb",
     collection="users",
     query={"active": True},
     limit=100
 )
+
+# Handle with pattern matching (modern Python!)
+match result:
+    case Ok(documents):
+        print(f"✅ Fetched {len(documents)} documents")
+        # Process documents...
+    case Err(error):
+        print(f"❌ Fetch failed: {error}")
 ```
 
-### DataFrame Creation
+### DataFrame Creation with Functional Composition
 
 ```python
-from autoframe.utils.functional import to_dataframe
+from autoframe.utils.functional import to_dataframe, apply_schema
+from logerr import Ok, Err
 
-documents = [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
+documents = [{"name": "Alice", "age": "30"}, {"name": "Bob", "age": "25"}]
 
-# Create DataFrame with backend choice
-pandas_result = to_dataframe(documents, backend="pandas")
+# Modern functional approach with chaining
+result = (
+    to_dataframe(documents, backend="pandas")
+    .map(apply_schema({"age": "int"}))  # Apply schema if DataFrame creation succeeds
+)
+
+# Pattern matching for results
+match result:
+    case Ok(df):
+        print(f"🎉 DataFrame created: {len(df)} rows")
+        print(f"Age column type: {df['age'].dtype}")  # int64
+    case Err(error):
+        print(f"💥 DataFrame creation failed: {error}")
 polars_result = to_dataframe(documents, backend="polars")
 ```
 
