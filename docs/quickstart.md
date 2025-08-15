@@ -38,7 +38,7 @@ import autoframe.mongodb as mongodb
 
 # Build functional pipeline with automatic error handling
 result = (
-    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "app", "users"))
+    af.pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "app", "users"))
     .filter(lambda doc: doc.get("active", False))
     .filter(lambda doc: doc.get("age", 0) >= 18)  # Adults only
     .transform(lambda doc: {**doc, "category": "adult_user"})
@@ -143,7 +143,7 @@ import autoframe.mongodb as mongodb
 
 # Fluent interface for those who prefer method chaining
 result = (
-    af.create_pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "crm", "contacts"))
+    af.pipeline(lambda: mongodb.fetch("mongodb://localhost:27017", "crm", "contacts"))
     .filter(lambda doc: doc.get("active", True))
     .transform(lambda doc: {**doc, "updated": True})
     .to_dataframe()
@@ -154,6 +154,62 @@ result = (
 match result:
     case Ok(df): print(f"Processed {len(df)} contacts")
     case Err(error): print(f"Failed: {error}")
+```
+
+## Authentication & Security
+
+For production use, manage credentials securely with environment variables:
+
+```python
+from autoframe.auth import create_config_from_env
+import autoframe.mongodb as mongodb
+
+# Set environment variables:
+# export MONGODB_HOST=your-mongo-host.com
+# export MONGODB_USERNAME=your-username
+# export MONGODB_PASSWORD=your-password
+# export MONGODB_DATABASE=your-database
+
+config_result = create_config_from_env()
+
+match config_result:
+    case Ok(config):
+        # Use secure configuration
+        result = mongodb.to_dataframe(config, "mydb", "users", limit=100)
+        
+        match result:
+            case Ok(df):
+                print(f"🔐 Securely loaded {len(df)} users")
+            case Err(error):
+                print(f"💥 Database error: {error}")
+                
+    case Err(error):
+        print(f"🔧 Configuration error: {error}")
+        # Handle missing environment variables
+```
+
+Or create authenticated connections explicitly:
+
+```python
+from autoframe.auth import create_authenticated_config
+import autoframe.mongodb as mongodb
+
+# For production with SSL
+config = create_authenticated_config(
+    host="secure-mongo.example.com",
+    username="api_user", 
+    password="secure_password",
+    database="production",
+    ssl=True
+)
+
+result = mongodb.to_dataframe(config, "production", "analytics")
+
+match result:
+    case Ok(df):
+        print(f"🔒 Secure connection: {len(df)} records")
+    case Err(error):
+        print(f"🚨 Secure connection failed: {error}")
 ```
 
 ## Working with Local Data
@@ -224,6 +280,7 @@ AutoFrame leverages Python 3.12+ features:
 
 Now that you've seen the modern functional approach:
 
+- [Authentication Guide](authentication.md) - Complete security and credential management guide
 - [Functional API Reference](functional-api.md) - Deep dive into function composition
 - [Examples](examples.md) - Real-world patterns and recipes
 - [Data Sources](data-sources.md) - MongoDB integration details

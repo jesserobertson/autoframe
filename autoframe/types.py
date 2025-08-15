@@ -4,7 +4,8 @@ This module provides type aliases and common types used throughout the autoframe
 building on the functional programming patterns from logerr.
 """
 
-from typing import TypeVar, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
+
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ else:
     except ImportError:
         POLARS_AVAILABLE = False
 
-from logerr import Result, Option, Ok, Err
+from logerr import Option, Result
 
 # Type variables for generic programming
 T = TypeVar("T")
@@ -66,7 +67,7 @@ DataFrameResult = Result[DataFrameType, DataFrameCreationError]
 QualityResult = Result[T, QualityValidationError]
 ConfigResult = Result[T, ConfigurationError]
 
-# Connection and query types  
+# Connection and query types
 type ConnectionString = str
 type DatabaseName = str
 type CollectionName = str

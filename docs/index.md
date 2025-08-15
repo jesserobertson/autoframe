@@ -11,6 +11,7 @@
 📊 **Functional First** - Uses Result/Option types from [logerr](https://github.com/jesserobertson/logerr) for robust error handling  
 🐼 **Multi-backend** - Supports both pandas and polars dataframes  
 🗄️ **MongoDB Integration** - Easy data fetching from MongoDB with functional query building  
+🔐 **Secure by Default** - Built-in authentication and credential management with environment variable support  
 ⚡ **Type Safe** - Full mypy support with comprehensive type annotations  
 
 ## Philosophy
@@ -59,7 +60,7 @@ result = (
 ```python
 # Method chaining pipeline
 result = (
-    af.create_pipeline(lambda: af.fetch_documents(conn, db, coll))
+    af.pipeline(lambda: af.fetch_documents(conn, db, coll))
     .filter(lambda d: d["active"])
     .transform(lambda d: {**d, "category": "user"})
     .limit(1000)
@@ -75,6 +76,7 @@ Ready to dive in? Check out our:
 
 - [Installation Guide](installation.md) - Get AutoFrame installed
 - [Quick Start](quickstart.md) - Your first AutoFrame pipeline  
+- [Authentication Guide](authentication.md) - Secure credential management
 - [Examples](examples.md) - Real-world usage patterns
 - [API Reference](api/index.md) - Complete function documentation
 

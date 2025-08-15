@@ -10,25 +10,30 @@ __email__ = "jess.robertson@niwa.co.nz"
 
 # Re-export key components for convenient access
 # Simplified functional, composable API
-from autoframe.pipeline import create_pipeline
-from autoframe import mongodb
-from autoframe.utils.functional import to_dataframe, apply_schema, pipe
-from autoframe.utils.retry import with_database_retry, with_network_retry, retry_with_backoff
-from autoframe.quality import log_result_failure, log_conversion_operation
+from autoframe import auth, mongodb
+from autoframe.pipeline import pipeline
+from autoframe.quality import log_conversion_operation, log_result_failure
+from autoframe.utils.functional import apply_schema, pipe, to_dataframe
+from autoframe.utils.retry import (
+    retry_with_backoff,
+    with_database_retry,
+    with_network_retry,
+)
 
 __all__ = [
-    # Core functional API
-    "mongodb",
-    "create_pipeline", 
-    "to_dataframe",
-    "apply_schema", 
-    "pipe",
-    # Retry utilities
-    "with_database_retry",
-    "with_network_retry", 
-    "retry_with_backoff",
+    "__version__",
+    "apply_schema",
+    "auth",
+    "log_conversion_operation",
     # Transparent quality logging
     "log_result_failure",
-    "log_conversion_operation",
-    "__version__",
+    # Core functional API
+    "mongodb",
+    "pipe",
+    "pipeline",
+    "retry_with_backoff",
+    "to_dataframe",
+    # Retry utilities
+    "with_database_retry",
+    "with_network_retry",
 ]
